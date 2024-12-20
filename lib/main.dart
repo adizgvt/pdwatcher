@@ -1,23 +1,42 @@
-import 'package:flutter/material.dart';
-import 'package:watcher/watcher.dart';
+import 'package:fluent_ui/fluent_ui.dart';
 import 'package:pdwatcher/chunker.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:pdwatcher/cdc_chunker.dart';
+import 'package:pdwatcher/providers/sync_provider.dart';
+import 'package:pdwatcher/providers/theme_provider.dart';
+import 'package:pdwatcher/services/local_storage_service.dart';
+import 'package:pdwatcher/services/log_service.dart';
+import 'package:pdwatcher/services/sync_service.dart';
+import 'package:provider/provider.dart';
 import './screens/home_screen.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:window_manager/window_manager.dart';
+
+import 'dart:ui' as ui;
 
 void main() async {
+
+  if (!Platform.isWindows) {
+    Log.error("This application only runs on Windows.");
+    exit(1);
+  }
 
   sqfliteFfiInit();
 
   databaseFactory = databaseFactoryFfi;
-  
+
+  LocalStorage.setWatchedDirectory('C:\\Users\\user\\Desktop\\watch');
+
+  await WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+  windowManager.setMinimumSize(Size(800, 600));
+
   runApp(MyApp());
 
   return;
-  
+
   String path = 'C:\\Users\\pd\\Desktop\\watch';
   int chunkSize = 1024 * 4 * 1024; //4MB
 
@@ -26,7 +45,7 @@ void main() async {
 
   // Lock the file asynchronously with an exclusive lock
   raf.lockSync(FileLock.exclusive);
-  
+
   await Future.delayed(Duration(seconds: 300));
 
   return;
@@ -90,12 +109,20 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SyncProvider()),
+        //ChangeNotifierProvider(create: (_) => ThemeProvider() ,lazy: false,),
+      ],
+      child: FluentApp(
+        debugShowCheckedModeBanner: false,
+        home: FluentTheme(
+          data: FluentThemeData(
+            brightness: Brightness.dark
+          ),
+          child: MyHomePage(),
+        ),
       ),
-      home: MyHomePage(),
     );
   }
 }

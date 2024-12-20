@@ -1,0 +1,78 @@
+for uploading modified file
+
+local db store id, local_path, remote_id, remote_timestamp, local_modified
+
+call API to get remote Id last remote_timstamp;
+
+filename    path    size    remote_timestamp    action
+same        same    same    same                -
+same        same    diff    same                modify
+same        diff    same    same                move
+same        diff    diff    same                modify -> move
+diff        same    same    same                rename
+diff        same    diff    same                modify -> rename
+diff        diff    same    same                rename -> move
+diff        diff    diff    same                modify -> rename -> move
+
+filename    path    size    remote_timestamp    action
+same        same    same    diff                -
+same        same    diff    diff                -
+same        diff    same    diff                -
+same        diff    diff    diff                -
+diff        same    same    diff                -
+diff        same    diff    diff                -
+diff        diff    same    diff                -
+diff        diff    diff    diff                -
+
+^-----maybe just -> rename file, add new entry add server
+
+
+for downloading files
+
+query all files from local db with existing remote_id
+
+call API check all user files/folders
+
+#divide into two task -> UpdateExistingFiles() DownloadNewFiles()
+
+iterate through all files/folders
+
+id not exist in local db: consider as new file. add to DownloadNewFiles()
+
+if id exist.
+filter out where localDB.remote_timestamp = API.remote_timestamp;
+
+if localDB.remote_timestamp == API.remote_timestamp::
+    remote same
+
+    ignore
+
+if localDB.remote_timestamp != API.remote_timestamp::
+
+    remote modified
+    download file from server to temp,
+
+    localDB.local_modified:
+        copy local file to temp -> rename -> move to original directory
+
+    move downloaded file from temp to original directory using original name to replace the local file;
+
+
+
+
+                                #LOCAL OPERATION
+                                #prepare event processor to skip generated event;
+    filename    path    size    action
+    same        same    same    -
+    same        same    diff    modify
+    same        diff    same    move
+    same        diff    diff    modify -> move
+    diff        same    same    rename
+    diff        same    diff    modify -> rename
+    diff        diff    same    rename -> move
+    diff        diff    diff    modify -> rename -> move
+
+
+
+how long calculate hash 1gb file
+

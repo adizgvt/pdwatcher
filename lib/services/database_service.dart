@@ -1,6 +1,9 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
+import '../utils//types.dart';
+import '../models/FileFolderInfo.dart';
+
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   static Database? _database;
@@ -25,7 +28,7 @@ class DatabaseService {
 
     print('running _initDatabase');
     // Get the database path
-    String path = join(await getDatabasesPath(), 'my_database.db');
+    String path = join(await getDatabasesPath(), 'my_databse.db');
 
     // Open the database, create tables if necessary
     return await openDatabase(
@@ -37,6 +40,7 @@ class DatabaseService {
             id                INTEGER PRIMARY KEY AUTOINCREMENT,
             local_path        TEXT,
             local_timestamp   INTEGER,
+            local_modified    INTEGER,
             remote_id         INTEGER,
             remote_timestamp  INTEGER
           )
@@ -47,6 +51,7 @@ class DatabaseService {
             id                INTEGER PRIMARY KEY AUTOINCREMENT,
             local_path        TEXT,
             local_timestamp   INTEGER,
+            local_modified    INTEGER,
             remote_id         INTEGER,
             remote_timestamp  INTEGER
           )
@@ -66,6 +71,7 @@ class DatabaseService {
       {
         'local_path'        : path,
         'local_timestamp'   : timestamp,
+        'local_modified'    : 0,
         'remote_id'         : null,
         'remote_timestamp'  : null
 
@@ -83,6 +89,7 @@ class DatabaseService {
       {
         'local_path'        : path,
         'local_timestamp'   : timestamp,
+        'local_modified'    : 0,
         'remote_id'         : null,
         'remote_timestamp'  : null
 
@@ -90,7 +97,7 @@ class DatabaseService {
     );
   }
 
-  Future<void> modifyFile({
+  Future<void> _modifyFile({
     required String path,
     required int timestamp,
   }) async {
@@ -99,16 +106,16 @@ class DatabaseService {
     db.update(
       'files',
       {
-        'local_timestamp': timestamp
+        'local_timestamp'   : timestamp,
+        'local_modified'    : 1,
       },
       where       : 'local_path = ?',
       whereArgs   : [path],
-      );
-
+    );
     
   }
 
-  Future<void> renameFile({
+  Future<void> _renameFile({
     required String path,
     required String destination,
     required int timestamp,
@@ -119,14 +126,17 @@ class DatabaseService {
       'files',
       {
         'local_path'        : destination,
-        'local_timestamp'   : timestamp
+        'local_timestamp'   : timestamp,
+        'local_modified'    : 1
       }, // The values to update
       where     : 'local_path = ?',
       whereArgs : [path],
-      );
+    );
+
+    print('patutnya jadi');
   }
 
-  Future<void> renameFolder({
+  Future<void> _renameFolder({
     required String path,
     required String destination,
     required int timestamp,
@@ -137,14 +147,15 @@ class DatabaseService {
       'folders',
       {
         'local_path'       : destination,
-        'local_timestamp'  : timestamp
+        'local_timestamp'  : timestamp,
+        'local_modified'   : 1
       }, // The values to update
       where     : 'local_path = ?',
       whereArgs : [path],
       );
   }
 
-  Future<void> moveFile({
+  Future<void> _moveFile({
     required String path,
     required String destination,
     required int timestamp,
@@ -155,14 +166,15 @@ class DatabaseService {
       'files',
       {
         'local_path'      : destination,
-        'local_timestamp' : timestamp
+        'local_timestamp' : timestamp,
+        'local_modified'  : 1
       },
       where     : 'local_path = ?',
       whereArgs : [path],
       );
   }
 
-  Future<void> moveFolder({
+  Future<void> _moveFolder({
     required String path,
     required String destination,
     required int timestamp,
@@ -173,7 +185,8 @@ class DatabaseService {
       'folders',
       {
         'local_path'        : destination,
-        'local_timestamp'   : timestamp
+        'local_timestamp'   : timestamp,
+        'local_modified'    : 1
       },
       where     : 'local_path = ?',
       whereArgs : [path],
@@ -213,8 +226,6 @@ class DatabaseService {
   Future queryAllFiles() async {
 
     final db = await database;
-    
-    //return await db.rawQuery('SELECT name FROM sqlite_master WHERE type="table"');
 
     return await db.query('files');
 
@@ -228,7 +239,56 @@ class DatabaseService {
     
   }
 
+  Future queryNewFolders() async {
+
+    final db = await database;
+
+    var result = await db.query(
+      'folders',
+      where: 'remote_id IS NULL'
+    );
+
+    return result.map((map) => FileFolderInfo.fromMap(map)).toList();
+  }
+
+  Future queryNewFiles() async {
+
+    final db = await database;
+
+    var result = await db.query(
+        'files',
+        where: 'remote_id IS NULL'
+    );
+
+    return result.map((map) => FileFolderInfo.fromMap(map)).toList();
+  }
+
+  Future queryModifiedFiles() async {
+
+    final db = await database;
+
+    var result = await db.query(
+        'files',
+        where : 'local_modified = 1'
+    );
+
+    return result.map((map) => FileFolderInfo.fromMap(map)).toList();
+  }
+
+  queryModifiedFolders() async {
+
+    final db = await database;
+
+    var result = await db.query(
+        'folders',
+        where : 'local_modified = 1'
+    );
+
+    return result.map((map) => FileFolderInfo.fromMap(map)).toList();
+  }
+
   Future deleteAll() async {
+
     final db = await database;
 
     db.delete('folders');
@@ -236,5 +296,83 @@ class DatabaseService {
     db.delete('files');
 
   }
+
+  updateLocalDatabaseRecord({
+  required queue,
+  required DatabaseService db
+  }){
+
+
+  if(queue['event']['type'] == FileType.file){
+
+    if(queue['event']['action'] == QueueAction.create){
+      db.createFile(
+        path        : queue['event']['path'], 
+        timestamp   : queue['timestamp']
+      );
+    }
+
+    if(queue['event']['action'] == QueueAction.modify){
+      db._modifyFile(
+        path        : queue['event']['path'], 
+        timestamp   : queue['timestamp']
+      );
+    }
+
+    if(queue['event']['action'] == QueueAction.rename){
+      db._renameFile(
+        path        : queue['event']['from'], 
+        destination : queue['event']['to'],
+        timestamp   : queue['timestamp']
+      );
+    }
+
+    if(queue['event']['action'] == QueueAction.move){
+      db._moveFile(
+        path        : queue['event']['from'], 
+        destination : queue['event']['to'],
+        timestamp   : queue['timestamp']
+      );
+    }
+
+    if(queue['event']['action'] == QueueAction.delete){
+      db.deleteFile(
+        path        : queue['event']['path'], 
+      );
+    }
+    
+  }else{
+
+    if(queue['event']['action'] == QueueAction.create){
+      db.createFolder(
+        path        : queue['event']['path'], 
+        timestamp   : queue['timestamp']
+      );
+    }
+
+    if(queue['event']['action'] == QueueAction.rename){
+      db._renameFolder(
+        path        : queue['event']['from'], 
+        destination : queue['event']['to'],
+        timestamp   : queue['timestamp']
+      );
+    }
+
+    if(queue['event']['action'] == QueueAction.move){
+      db._moveFolder(
+        path        : queue['event']['from'], 
+        destination : queue['event']['to'],
+        timestamp   : queue['timestamp']
+      );
+    }
+
+    if(queue['event']['action'] == QueueAction.delete){
+      db.deleteFolder(
+        path        : queue['event']['path'], 
+      );
+    }
+
+  }
+}
 
 }
