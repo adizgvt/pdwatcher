@@ -75,24 +75,24 @@ class SyncProvider extends ChangeNotifier {
 
     switch (syncType) {
       case SyncType.newFolder:
-        newFolders[index].syncStatus = status;
-        if(message != null) newFolders[index].message = message;
-        if(progress != null) newFolders[index].syncProgress = progress;
-            break;
+                              newFolders[index].syncStatus        = status;
+        if(message != null)   newFolders[index].message           = message;
+        if(progress != null)  newFolders[index].syncProgress      = progress;
+        break;
       case SyncType.newFile:
-        newFiles[index].syncStatus = status;
-        if(message != null) newFiles[index].message = message;
-        if(progress != null) newFiles[index].syncProgress = progress;
+                              newFiles[index].syncStatus          = status;
+        if(message != null)   newFiles[index].message             = message;
+        if(progress != null)  newFiles[index].syncProgress        = progress;
         break;
       case SyncType.modifiedFolder:
-        modifiedFolders[index].syncStatus = status;
-        if(message != null) modifiedFolders[index].message = message;
-        if(progress != null) modifiedFolders[index].syncProgress = progress;
+                              modifiedFolders[index].syncStatus   = status;
+        if(message != null)   modifiedFolders[index].message      = message;
+        if(progress != null)  modifiedFolders[index].syncProgress = progress;
         break;
       case SyncType.modifiedFile:
-        modifiedFiles[index].syncStatus = status;
-        if(message != null) modifiedFiles[index].message = message;
-        if(progress != null) modifiedFiles[index].syncProgress = progress;
+                              modifiedFiles[index].syncStatus     = status;
+        if(message != null)   modifiedFiles[index].message        = message;
+        if(progress != null)  modifiedFiles[index].syncProgress   = progress;
         break;
     }
     notifyListeners();

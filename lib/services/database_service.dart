@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 
 import '../utils//types.dart';
 import '../models/FileFolderInfo.dart';
+import '../services/log_service.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -26,7 +27,7 @@ class DatabaseService {
   // Initialize the database
   Future<Database> _initDatabase() async {
 
-    print('running _initDatabase');
+    Log.info('Initializing Database......');
     // Get the database path
     String path = join(await getDatabasesPath(), 'my_databse.db');
 
