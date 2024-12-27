@@ -4,11 +4,15 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:pdwatcher/cdc_chunker.dart';
+import 'package:pdwatcher/providers/file_provider.dart';
 import 'package:pdwatcher/providers/sync_provider.dart';
 import 'package:pdwatcher/providers/theme_provider.dart';
+import 'package:pdwatcher/providers/user_provider.dart';
+import 'package:pdwatcher/screens/loading_screen.dart';
 import 'package:pdwatcher/services/local_storage_service.dart';
 import 'package:pdwatcher/services/log_service.dart';
 import 'package:pdwatcher/services/sync_service.dart';
+import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
 import './screens/home_screen.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -23,9 +27,7 @@ void main() async {
     exit(1);
   }
 
-  sqfliteFfiInit();
 
-  databaseFactory = databaseFactoryFfi;
 
   LocalStorage.setWatchedDirectory('C:\\Users\\user\\Desktop\\watch');
 
@@ -113,17 +115,11 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SyncProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => FileProvider()),
         //ChangeNotifierProvider(create: (_) => ThemeProvider() ,lazy: false,),
       ],
-      child: FluentApp(
-        debugShowCheckedModeBanner: false,
-        home: FluentTheme(
-          data: FluentThemeData(
-            brightness: Brightness.dark
-          ),
-          child: MyHomePage(),
-        ),
-      ),
+      child: wrapFluent(child: LoadingScreen())
     );
   }
 }

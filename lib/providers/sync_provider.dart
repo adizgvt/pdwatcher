@@ -1,6 +1,12 @@
-import 'package:fluent_ui/fluent_ui.dart';
-import 'package:pdwatcher/models/FileFolderInfo.dart';
+import 'dart:convert';
 
+import 'package:fluent_ui/fluent_ui.dart';
+import 'package:pdwatcher/models/file_folder_info.dart';
+
+import '../models/api_response.dart';
+import '../models/change.dart';
+import '../services/api_service.dart';
+import '../services/log_service.dart';
 import '../utils/enums.dart';
 import '../utils/types.dart';
 
@@ -21,6 +27,8 @@ class SyncProvider extends ChangeNotifier {
   int? uploadProgress;
 
   List<dynamic> ignoreList = [];
+  
+  Change? change;
 
   void setOffline() {
     isOffline = true;
@@ -96,6 +104,51 @@ class SyncProvider extends ChangeNotifier {
         break;
     }
     notifyListeners();
+  }
+
+  getChanges(context) async {
+
+    change = null;
+
+    ApiResponse apiResponse = await apiService(
+        data: {
+          //'Time': DateTime.now().millisecondsSinceEpoch~/1000,
+        },
+        serviceMethod: ServiceMethod.post,
+        path: '/api/getChanges'
+    );
+
+    if(apiResponse.statusCode == 200){
+
+        change = changeFromJson(jsonEncode(apiResponse.data));
+
+        //ORDER BY MIMETYPE,PATH
+        change!.files.sort((a, b) => a.path.compareTo(b.path) == 0 ?  a.mimetype.compareTo(b.mimetype) : a.path.compareTo(b.path));
+
+        //USE ONLY ITEMS THAT STARTS WITH files/
+        change!.files.removeWhere((file) => !file.path.startsWith('files/'));
+
+        change!.files.forEach((file) {
+          file.path = file.path.replaceFirst('files/', '');
+        });
+
+        Log.info('CHANGED');
+        for(var file in change!.files){
+          print(jsonEncode(file));
+        }
+        Log.info('DELETED');
+        for(var file in change!.filesDeleted){
+          print(jsonEncode(file));
+        }
+        Log.info('SHARED');
+        for(var file in change!.shareFile){
+          print(jsonEncode(file));
+        }
+
+    }
+    else {
+      change = null;
+    }
   }
 
 

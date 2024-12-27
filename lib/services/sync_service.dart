@@ -6,9 +6,10 @@ import 'package:pdwatcher/providers/sync_provider.dart';
 import 'package:pdwatcher/services/database_service.dart';
 import 'package:pdwatcher/services/local_storage_service.dart';
 import 'package:provider/provider.dart';
+import '../models/change.dart';
 import '../utils/consts.dart';
 import '../utils/enums.dart';
-import '../models/FileFolderInfo.dart';
+import '../models/file_folder_info.dart';
 import '../utils/types.dart';
 import 'file_service.dart';
 import 'log_service.dart';
@@ -71,7 +72,110 @@ abstract class SyncService {
 
   }
 
-  static syncRemoteToLocal(context) async {
+  static Future<bool> syncRemoteToLocal(context) async {
+
+    //wait until sync finish first;
+    if(Provider.of<SyncProvider>(context, listen: false).isSyncing){
+      Log.warning('Currently syncing... wait until finish');
+      return false;
+    }
+
+    //check internet connection
+    final connectivityResult = await (Connectivity().checkConnectivity());
+
+    switch (connectivityResult) {
+      case ConnectivityResult.none:
+        Log.error('No internet connection. Sync operation aborted');
+        Provider.of<SyncProvider>(context, listen: false).setOffline();
+        return false;
+      case ConnectivityResult.ethernet:
+      case ConnectivityResult.wifi:
+      case ConnectivityResult.vpn:
+        Log.info('Internet OK');
+        Provider.of<SyncProvider>(context, listen: false).setOnline();
+      default:
+        Provider.of<SyncProvider>(context, listen: false).setOffline();
+        Log.error('Unknown connection status');
+        return false;
+    }
+
+    await Provider.of<SyncProvider>(context, listen: false).getChanges(context);
+
+    if(Provider.of<SyncProvider>(context, listen: false).change == null){
+      Log.error('Error calling api getChanges');
+      return false;
+    }
+
+    Change change = Provider.of<SyncProvider>(context, listen: false).change!;
+
+    DatabaseService databaseService = DatabaseService();
+
+    for (var file in change.files) {
+
+      Log.info('Started Syncing Remote -> Local For File: ${file.path}');
+
+      //check db if file already registered
+      List<FileFolderInfo> localDBData = await databaseService.queryById(id: file.remotefileId, mimetype: file.mimetype);
+
+      if(localDBData.isEmpty){
+        Log.verbose('No Local File Found for ${file.path}');
+
+        //Download to temp
+
+        //set move based on file path
+
+        //add ignore list
+
+        //move
+
+        //add to db
+
+
+      }else{
+
+        Log.verbose('Existing Local File Found for ${file.path}');
+
+        //compare remote_timestamp
+        if(file.mtime == localDBData[0].remoteTimestamp!){
+
+          Log.verbose('Remote File Not Updated for ${file.path}');
+          Log.verbose('Skipping Download ${file.path}');
+          continue;
+        }
+
+        Log.verbose('Remote File Updated for ${file.path}');
+        Log.verbose('Preparing Download for ${file.path}');
+
+        //download temp
+
+        //compare path
+        if(file.path != localDBData[0].localPath){
+          Log.verbose('File Path Different');
+          Log.verbose('Local  : ${localDBData[0].localPath}');
+          Log.verbose('Remote : ${file.path}');
+          //
+          continue;
+
+        }
+        //set move based on local path
+
+        if(localDBData[0].localModified == 1){
+          Log.verbose('Local File Updated for ${file.path}');
+          //create copy
+        }
+
+        //add ignore list
+
+        //move
+
+        //update db
+
+      }
+
+    }
+
+    return true;
+
 
   }
 

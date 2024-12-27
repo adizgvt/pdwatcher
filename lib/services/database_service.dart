@@ -1,8 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-
+import '../models/file_folder_info.dart';
 import '../utils//types.dart';
-import '../models/FileFolderInfo.dart';
 import '../services/log_service.dart';
 
 class DatabaseService {
@@ -247,6 +246,19 @@ class DatabaseService {
     var result = await db.query(
       'folders',
       where: 'remote_id IS NULL'
+    );
+
+    return result.map((map) => FileFolderInfo.fromMap(map)).toList();
+  }
+
+  Future queryById({required int id, required mimetype}) async {
+
+    final db = await database;
+
+    var result = await db.query(
+        mimetype == 2 ? 'folders' : 'files',
+        where     : 'id = ?',
+        whereArgs : [id],
     );
 
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();

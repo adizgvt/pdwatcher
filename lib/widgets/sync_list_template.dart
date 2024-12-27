@@ -1,5 +1,5 @@
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:pdwatcher/models/FileFolderInfo.dart';
+import 'package:pdwatcher/models/file_folder_info.dart';
 import 'package:pdwatcher/utils/enums.dart';
 import 'package:pdwatcher/widgets/spinning_icon.dart';
 import 'package:provider/provider.dart';
