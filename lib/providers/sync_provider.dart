@@ -128,29 +128,29 @@ class SyncProvider extends ChangeNotifier {
         //USE ONLY ITEMS THAT STARTS WITH files/
         change!.files.removeWhere((file) => !file.path.startsWith('files/'));
 
+        //REPLACE files/ WITH '' -> because remote root dir != local watched dir
+        //REPLACE / WITH \ BECAUSE LINUX -> WINDOWS
         change!.files.forEach((file) {
-          file.path = file.path.replaceFirst('files/', '');
+          file.path = file.path.replaceFirst('files/', '').replaceAll('/', '\\');
         });
 
-        Log.info('CHANGED');
-        for(var file in change!.files){
-          print(jsonEncode(file));
-        }
-        Log.info('DELETED');
-        for(var file in change!.filesDeleted){
-          print(jsonEncode(file));
-        }
-        Log.info('SHARED');
-        for(var file in change!.shareFile){
-          print(jsonEncode(file));
-        }
+        // Log.info('CHANGED');
+        // for(var file in change!.files){
+        //   Log.verbose(jsonEncode(file));
+        // }
+        // Log.info('DELETED');
+        // for(var file in change!.filesDeleted){
+        //   Log.verbose(jsonEncode(file));
+        // }
+        // Log.info('SHARED');
+        // for(var file in change!.shareFile){
+        //   Log.verbose(jsonEncode(file));
+        // }
 
     }
     else {
       change = null;
     }
   }
-
-
 
 }

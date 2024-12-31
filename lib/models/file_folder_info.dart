@@ -37,13 +37,13 @@ class FileFolderInfo {
   // Method to convert the object back to a map (optional)
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'local_path': localPath,
-      'local_timestamp': localTimestamp,
-      'local_timestamp': localModified,
-      'remote_id': remoteId,
+      'id'              : id,
+      'local_path'      : localPath,
+      'local_timestamp' : localTimestamp,
+      'local_modified'  : localModified,
+      'remote_id'       : remoteId,
       'remote_timestamp': remoteTimestamp,
-      'sync_status': syncStatus,  // Include syncStatus in the map
+      'sync_status'     : syncStatus,  // Include syncStatus in the map
     };
   }
 

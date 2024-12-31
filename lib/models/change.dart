@@ -4,6 +4,8 @@
 
 import 'dart:convert';
 
+import 'package:pdwatcher/utils/enums.dart';
+
 Change changeFromJson(String str) => Change.fromJson(json.decode(str));
 
 String changeToJson(Change data) => json.encode(data.toJson());
@@ -52,6 +54,8 @@ class FileElement {
   int modifyBy;
   DateTime? updatedAt;
   DateTime? createdAt;
+  SyncStatus? syncStatus;
+  String? errorMessage;
 
   FileElement({
     required this.remotefileId,
@@ -73,6 +77,8 @@ class FileElement {
     required this.modifyBy,
     required this.updatedAt,
     required this.createdAt,
+    this.syncStatus,
+    this.errorMessage,
   });
 
   factory FileElement.fromJson(Map<String, dynamic> json) => FileElement(
@@ -117,6 +123,8 @@ class FileElement {
     "modify_by": modifyBy,
     "updated_at": updatedAt?.toIso8601String(),
     "created_at": createdAt?.toIso8601String(),
+    "sync_status": syncStatus.toString(),
+    "error_message": errorMessage,
   };
 }
 

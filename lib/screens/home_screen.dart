@@ -22,6 +22,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../providers/sync_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/dummy_service.dart';
+import '../services/file_service.dart';
 import '../widgets/action_button.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -143,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {});
     });
 
-    timer = Timer.periodic(const Duration(seconds: 1), (Timer timer) async {
+    timer = Timer.periodic(const Duration(milliseconds: 1), (Timer timer) async {
 
       setState(() {});
 
@@ -275,7 +276,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: (){
       
                       _gotoTab(2);
-      
+
                       SyncService.syncRemoteToLocal(context);
                       _queryFilesAndFolders();
       
@@ -285,8 +286,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     icon: const Icon(FluentIcons.play, color: Colors.successPrimaryColor,),
                     label: const Text('Test Button'),
                     onPressed: () async {
-      
-                      List<FileFolderInfo> localDBData = await DatabaseService().queryById(id: 12, mimetype: 21);
+
+                      FileService.download(fileId: 638, tempName: 'asd');
       
                     }
                 ),

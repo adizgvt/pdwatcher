@@ -1,32 +1,38 @@
 import 'dart:convert';
+import 'package:chunked_uploader/chunked_uploader.dart';
+import 'package:custom_platform_device_id/platform_device_id.dart';
 import 'package:dio/dio.dart';
-import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pdwatcher/services/local_storage_service.dart';
 import '../models/api_response.dart';
+import '../utils/consts.dart';
 import '../utils/enums.dart';
+import 'dart:io' show Platform;
+
+import 'log_service.dart';
 
 Future<ApiResponse> apiService({
   Map<String, dynamic>? data,
   required ServiceMethod serviceMethod,
   required String path,
-  String? baseUrl
+  String? baseUrl,
+  String tempName = ''
 }) async {
 
   if(data != null){
     data.addAll({
-      'hostname': 'DESKTOPPP',
-      'uuid': 'UUUUIID',
+      'hostname': Platform.localHostname,
+      'uuid': await PlatformDeviceId.getDeviceId,
     });
   }else{
-    data?.addAll({
-      'hostname': 'DESKTOPPP',
-      'uuid': 'UUUUIID',
-    });
+    data = {
+      'hostname': Platform.localHostname,
+      'uuid': await PlatformDeviceId.getDeviceId,
+    };
   }
 
   ApiResponse apiResponse = ApiResponse(); //output response
-  Response response; //Dio response
+  Response? response; //Dio response
 
   String serverUrl = baseUrl ?? await LocalStorage.getServerUrl() ?? '';
 
@@ -66,22 +72,47 @@ Future<ApiResponse> apiService({
         response = await dio.delete(path, data: data);
         break;
 
+      case ServiceMethod.download:
+        response = await dio.download(
+            path,
+            '$tempDir$tempName',
+            data: data,
+            onReceiveProgress: (received, total) {
+              if (total != -1) {
+                Log.verbose(((received / total) * 100).toString());
+              }
+            },
+          options: Options(
+            method: 'POST',
+            responseType: ResponseType.bytes
+          )
+        );
+        break;
+
+      case ServiceMethod.upload:
+        break;
+
       default:
         response = await dio.get(path, queryParameters: data);
     }
     //PRINT LOGS
     if(kDebugMode) {
       print(serverUrl + path);
+
       if(data != null) {
         print('------------------------REQUEST DATA--------------------------------');
         print(const JsonEncoder.withIndent('  ').convert(data));
       }
-      print('--------------------RESPONSE STATUS ${response.statusCode}-----------------------------');
-      print(const JsonEncoder.withIndent('  ').convert(response.data));
+
+      print('--------------------RESPONSE STATUS ${response?.statusCode}-----------------------------');
+      if(response != null && response.data != null){
+        print(const JsonEncoder.withIndent('  ').convert(response?.data));
+      }
+
     }
-    apiResponse.statusCode = response.statusCode;
-    apiResponse.data = response.data;
-    apiResponse.message = response.data['message'] ?? response.data['error'] ?? 'Unknown error';
+    apiResponse.statusCode = response?.statusCode;
+    apiResponse.data = response?.data;
+    apiResponse.message = response?.data['message'] ?? response?.data['error'] ?? 'Unknown error';
 
   } catch (e, stacktrace) {
 

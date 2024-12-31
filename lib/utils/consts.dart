@@ -10,5 +10,3 @@ String initialSyncDirectory = 'C:\\Users\\user\\Desktop\\watch';
 
 String appLogo = 'assets/logo.png';
 
-String uuid     = 'DESKTOPPP';
-String hostname = 'UUUUIID';

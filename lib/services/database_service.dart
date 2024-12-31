@@ -251,17 +251,45 @@ class DatabaseService {
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();
   }
 
-  Future queryById({required int id, required mimetype}) async {
+  Future queryByRemoteId({required int remoteId, required mimetype}) async {
+
+    Log.verbose('Querying ${mimetype == 2 ? 'folders' : 'files'} with remote id $remoteId');
 
     final db = await database;
 
     var result = await db.query(
         mimetype == 2 ? 'folders' : 'files',
-        where     : 'id = ?',
-        whereArgs : [id],
+        where     : 'remote_id = ?',
+        whereArgs : [remoteId],
     );
 
+    Log.verbose('found ${result.length}');
+
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();
+  }
+
+  Future updateRemoteByPath({
+    required String localPath,
+    required int mimetype,
+    required int? remoteId,
+    required int? remoteTimeStamp,
+  }) async {
+
+    final db = await database;
+
+    var modifiedCount = await db.update(
+      mimetype == 2 ? 'folders' : 'files',
+      {
+        'remote_id': remoteId,
+        'remote_timestamp': remoteTimeStamp,
+      },
+      where: 'local_path = ?',
+      whereArgs: [localPath],
+    );
+    Log.verbose('$localPath|$mimetype|$remoteId|$remoteTimeStamp');
+    Log.verbose('updateRemoteByPath | Updated Rows: $modifiedCount');
+
+    return modifiedCount;
   }
 
   Future queryNewFiles() async {

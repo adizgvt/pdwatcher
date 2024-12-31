@@ -9,7 +9,9 @@ enum ServiceMethod {
   get,
   post,
   put,
-  delete
+  delete,
+  download,
+  upload
 }
 
 enum FileChangeEnum {

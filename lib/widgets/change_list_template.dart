@@ -74,6 +74,29 @@ changeListTemplate(context, {required FileChangeEnum changeType}){
                         Text(': ${DateTime.fromMillisecondsSinceEpoch(data[index].mtime*1000).toLocal().toString().substring(0,19)}', style: TextStyle(fontSize: 10)),
                       ],
                     ),
+                    if(data[index].mimetype != 2 && data[index].syncStatus != null)
+                    TableRow(
+                      children: [
+                        Text('Status', style: TextStyle(fontSize: 10)),
+                        Text(
+                            ': ${data[index].syncStatus.toString()}',
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: data[index].syncStatus == SyncStatus.pending ? Colors.grey :
+                                       data[index].syncStatus == SyncStatus.syncing ? Colors.orange :
+                                       data[index].syncStatus == SyncStatus.success ? Colors.green :
+                                       data[index].syncStatus == SyncStatus.failed ? Colors.red : Colors.black,
+                            )
+                        ),
+                      ],
+                    ),
+                    if(data[index].errorMessage != null)
+                      TableRow(
+                        children: [
+                          Text('Error', style: TextStyle(fontSize: 10)),
+                          Text(': ${data[index].errorMessage}', style: TextStyle(fontSize: 10)),
+                        ],
+                      ),
                   ],
                 ),
               ),
