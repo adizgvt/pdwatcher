@@ -162,6 +162,8 @@ class DatabaseService {
   }) async {
     final db = await database;
 
+    print('moving $path $destination');
+
     db.update(
       'files',
       {
@@ -270,19 +272,32 @@ class DatabaseService {
 
   Future updateRemoteByPath({
     required String localPath,
-    required int mimetype,
-    required int? remoteId,
-    required int? remoteTimeStamp,
+    int? mimetype,
+    int? remoteId,
+    int? remoteTimeStamp,
+    int? localModified,
   }) async {
 
     final db = await database;
 
+    Map<String,dynamic> toUpdate = {};
+
+    if(localModified != null){
+      toUpdate.addAll({'local_modified' : localModified});
+    }
+
+    if(remoteId != null){
+      toUpdate.addAll({'remote_id' : remoteId});
+    }
+
+    if(remoteTimeStamp != null){
+      toUpdate.addAll({'remote_timestamp' : remoteTimeStamp});
+    }
+
     var modifiedCount = await db.update(
+
       mimetype == 2 ? 'folders' : 'files',
-      {
-        'remote_id': remoteId,
-        'remote_timestamp': remoteTimeStamp,
-      },
+      toUpdate,
       where: 'local_path = ?',
       whereArgs: [localPath],
     );
