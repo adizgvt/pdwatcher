@@ -71,6 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
   _checkDirExist() async {
     final directory = Directory(await LocalStorage.getWatchedDirectory() ?? '');
     if (!directory.existsSync()) {
+      Log.error(' Sync Dir ${directory.path} not found');
       exit(1);
     }
   }
@@ -160,10 +161,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
       while(actionQueue.isNotEmpty){
         print('Running Queue : ${actionQueue.first}');
-        databaseService.updateLocalDatabaseRecord(
-          queue: actionQueue.first,
-          db: databaseService,
-        );
+
+        if(
+          actionQueue.first['event']['action'] == QueueAction.delete &&
+          actionQueue.length > 1 &&
+          actionQueue[1]['event']['action'] == QueueAction.move &&
+          actionQueue[0]['event']['path'] == actionQueue[1]['event']['from']
+        ){
+          print('ignoring ${actionQueue.first}');
+          //IF CURRENT QUEUE IS DELETE, NEXT QUEUE IS MOVE, AND DELETE PATH IS SAME WITH MOVE SOURCE, DO NOTHING
+        } else {
+          databaseService.updateLocalDatabaseRecord(
+            queue: actionQueue.first,
+            db: databaseService,
+          );
+        }
         // copyToTempAndChunk(
         //   filePath: actionQueue.first['event']['path'],
         //   tempDir: 'C:\\Users\\pd\\Desktop\\tempchunk\\'
