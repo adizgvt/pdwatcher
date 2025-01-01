@@ -407,17 +407,19 @@ abstract class SyncService {
         status: SyncStatus.failed,
         message: 'Remote file not found'
       );
+      continue;
     }
 
     String watchedDir = await LocalStorage.getWatchedDirectory() ?? '';
 
+    //replace all can make error if file name recursively same //todo
     String fileName = file.localPath.split('\\').last;
     String localPath = file.localPath.replaceAll('\\$fileName', '');
     String path = localPath.replaceAll('$watchedDir\\', 'files/');
     print(fileName);
     print(localPath);
     print(path);
-    print(remoteFileInfo!.name);
+    print(remoteFileInfo.name);
     print(remoteFileInfo.path);
 
     if(remoteFileInfo.name != fileName){
@@ -426,7 +428,7 @@ abstract class SyncService {
         serviceMethod: ServiceMethod.post,
         path: '/api/rename',
         data: {
-          'file_id'   : file.remoteId.toString(),
+          'file_id'   : hashid.encode(file.remoteId.toString()),
           'new_name'  : fileName
         }
       );
@@ -440,18 +442,40 @@ abstract class SyncService {
         );
         continue;
       }
+
+      databaseService.updateRemoteByPath(
+          localPath: file.localPath,
+          localModified: 0
+      );
     }
 
-    if(remoteFileInfo.path != '$path/$fileName'){
+    String remoteName = remoteFileInfo.path.split('/').last;
+    String remotePath = remoteFileInfo.path.replaceAll('/$remoteName', '');
+
+    if(remotePath != path){
 
       Log.verbose('File path different, Moving');
+      Log.verbose(path);
+      Log.verbose(remotePath);
+
+      FileElement? destination = change.files.firstWhereOrNull((element) => element.path == path);
+
+      if(destination == null){
+        Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+            syncType: SyncType.modifiedFile,
+            index: index,
+            status: SyncStatus.failed,
+            message: 'Unknown move destination'
+        );
+        continue;
+      }
 
       ApiResponse apiResponse = await apiService(
           serviceMethod: ServiceMethod.post,
           path: '/api/move',
           data: {
-            'file_id'         : file.remoteId.toString(),
-            'destination_id'  : fileName
+            'file_id'         : hashid.encode(file.remoteId.toString()),
+            'destination_id'  : destination.remotefileId
           }
       );
 
@@ -460,9 +484,15 @@ abstract class SyncService {
             syncType: SyncType.modifiedFile,
             index: index,
             status: SyncStatus.failed,
-            message: 'Fail to call api rename'
+            message: 'Fail to call api move'
         );
+        continue;
       }
+
+      databaseService.updateRemoteByPath(
+          localPath: file.localPath,
+          localModified: 0
+      );
     }
 
 
