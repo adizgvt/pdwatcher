@@ -10,3 +10,17 @@ String initialSyncDirectory = 'C:\\Users\\user\\Desktop\\watch';
 
 String appLogo = 'assets/logo.png';
 
+Map<String, dynamic> hashConfig = {
+  'salt'          : 'k0c3k',
+  'minHashLength' : 7,
+  'alphabet'      : 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890',
+};
+
+List<String> microsoftOfficeExtensions = [
+  '.docx',
+  '.doc',
+  '.xlsx',
+  '.xls',
+  '.pptx'
+];
+

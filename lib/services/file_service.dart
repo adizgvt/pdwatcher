@@ -107,7 +107,7 @@ class FileService {
     return null;
   }
   
-  static Future<bool> upload({required String filePath, required Map<String,String> data}) async {
+  static Future<Map<String, dynamic>?> upload({required String filePath, required Map<String,String> data}) async {
 
     String domain   = await LocalStorage.getServerUrl() ?? '';
     String token    = await LocalStorage.getToken() ?? '';
@@ -135,11 +135,23 @@ class FileService {
     );
 
     if(response == null){
-      return false;
+      return null;
     }
+
     Log.verbose(response.statusCode.toString());
     Log.verbose(response.toString());
-    return true;
+
+    if(response.statusCode != 200){
+      return null;
+    }
+
+    final uploadResponse = response.data;
+
+    return {
+      'id':       uploadResponse['fileid'],
+      'timstamp': uploadResponse['mtime'],
+      'mimetype': uploadResponse['mimetype'],
+    };
 
   }
 

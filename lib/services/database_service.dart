@@ -28,12 +28,12 @@ class DatabaseService {
 
     Log.info('Initializing Database......');
     // Get the database path
-    String path = join(await getDatabasesPath(), 'my_databse.db');
+    String path = join(await getDatabasesPath(), 'asdasssdad.db');
 
     // Open the database, create tables if necessary
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) {
         db.execute('''
           CREATE TABLE files (
@@ -42,7 +42,8 @@ class DatabaseService {
             local_timestamp   INTEGER,
             local_modified    INTEGER,
             remote_id         INTEGER,
-            remote_timestamp  INTEGER
+            remote_timestamp  INTEGER,
+            to_delete         INTEGER
           )
         ''');
 
@@ -53,7 +54,8 @@ class DatabaseService {
             local_timestamp   INTEGER,
             local_modified    INTEGER,
             remote_id         INTEGER,
-            remote_timestamp  INTEGER
+            remote_timestamp  INTEGER,
+            to_delete         INTEGER
           )
         ''');
         
@@ -197,32 +199,87 @@ class DatabaseService {
 
   Future<void> deleteFile({
     required String path,
+    bool forceDelete = false
   }) async {
     final db = await database;
 
-    db.delete(
+    final queryResult = await db.query(
       'files',
       where     : 'local_path = ?',
       whereArgs : [path],
+    );
+
+    List<FileFolderInfo> files = queryResult.map((map) => FileFolderInfo.fromMap(map)).toList();
+
+    if(files.isEmpty){
+      return;
+    }
+
+    //delete record if remote id null (new files), if remote id not null , set to delete = 1. (files already in cloud)
+    if(files.first.remoteId == null || forceDelete){
+      db.delete(
+        'files',
+        where     : 'local_path = ?',
+        whereArgs : [path],
       );
+    }else{
+      db.update(
+        'files',
+        {
+          'to_delete': 1
+        },
+        where     : 'local_path = ?',
+        whereArgs : [path],
+      );
+    }
+
   }
 
   Future<void> deleteFolder({
     required String path,
+    bool forceDelete = false,
   }) async {
     final db = await database;
 
-    db.delete(
+    final queryResult = await db.query(
       'folders',
       where     : 'local_path = ?',
       whereArgs : [path],
     );
 
-    db.delete(
-      'files',
-      where     : 'local_path LIKE ?',
-      whereArgs : ['%$path%'],
-    );
+    List<FileFolderInfo> folders = queryResult.map((map) => FileFolderInfo.fromMap(map)).toList();
+
+    if(folders.isEmpty){
+      return;
+    }
+
+    //delete record if remote id null (new files), if remote id not null , set to 0. (files already in cloud)
+    if(folders.first.remoteId == null || forceDelete){
+      db.delete(
+        'folders',
+        where     : 'local_path = ?',
+        whereArgs : [path],
+      );
+    }else{
+      db.update(
+        'folders',
+        {
+          'to_delete': 1
+        },
+        where     : 'local_path = ?',
+        whereArgs : [path],
+      );
+
+      db.update(
+        'files',
+        {
+          'to_delete': 1
+        },
+        where     : 'local_path LIKE ?',
+        whereArgs : ['%$path%'],
+      );
+    }
+
   }
 
   Future queryAllFiles() async {
@@ -241,7 +298,7 @@ class DatabaseService {
     
   }
 
-  Future queryNewFolders() async {
+  Future<List<FileFolderInfo>> queryNewFolders() async {
 
     final db = await database;
 
@@ -253,7 +310,7 @@ class DatabaseService {
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();
   }
 
-  Future queryByRemoteId({required int remoteId, required mimetype}) async {
+  Future<List<FileFolderInfo>> queryByRemoteId({required int remoteId, required mimetype}) async {
 
     Log.verbose('Querying ${mimetype == 2 ? 'folders' : 'files'} with remote id $remoteId');
 
@@ -272,7 +329,7 @@ class DatabaseService {
 
   Future updateRemoteByPath({
     required String localPath,
-    int? mimetype,
+    required int mimetype,
     int? remoteId,
     int? remoteTimeStamp,
     int? localModified,
@@ -307,7 +364,7 @@ class DatabaseService {
     return modifiedCount;
   }
 
-  Future queryNewFiles() async {
+  Future<List<FileFolderInfo>> queryNewFiles() async {
 
     final db = await database;
 
@@ -319,25 +376,49 @@ class DatabaseService {
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();
   }
 
-  Future queryModifiedFiles() async {
+  Future<List<FileFolderInfo>> queryModifiedFiles() async {
 
     final db = await database;
 
     var result = await db.query(
         'files',
-        where : 'local_modified = 1'
+        where : 'local_modified = 1 AND remote_id != NULL AND to_delete = 0'
     );
 
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();
   }
 
-  queryModifiedFolders() async {
+  Future<List<FileFolderInfo>> queryDeletedFiles() async {
+
+    final db = await database;
+
+    var result = await db.query(
+        'files',
+        where : 'to_delete = 1'
+    );
+
+    return result.map((map) => FileFolderInfo.fromMap(map)).toList();
+  }
+
+  Future<List<FileFolderInfo>> queryDeletedFolders() async {
 
     final db = await database;
 
     var result = await db.query(
         'folders',
-        where : 'local_modified = 1'
+        where : 'to_delete = 1'
+    );
+
+    return result.map((map) => FileFolderInfo.fromMap(map)).toList();
+  }
+
+  Future<List<FileFolderInfo>> queryModifiedFolders() async {
+
+    final db = await database;
+
+    var result = await db.query(
+        'folders',
+        where : 'local_modified = 1 AND remote_id != NULL AND to_delete = 0'
     );
 
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();

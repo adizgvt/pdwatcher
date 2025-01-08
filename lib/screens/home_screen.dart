@@ -23,6 +23,7 @@ import '../providers/sync_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/dummy_service.dart';
 import '../services/file_service.dart';
+import '../services/log_service.dart';
 import '../widgets/action_button.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -71,6 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
   _checkDirExist() async {
     final directory = Directory(await LocalStorage.getWatchedDirectory() ?? '');
     if (!directory.existsSync()) {
+      Log.error(' Sync Dir ${directory.path} not found');
       Log.error(' Sync Dir ${directory.path} not found');
       exit(1);
     }
@@ -415,6 +417,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                           Expanded(child: Text('local_modified', style: FluentTheme.of(context).typography.bodyStrong),),
                                           Expanded(child: Text('remote_id', style: FluentTheme.of(context).typography.bodyStrong),),
                                           Expanded(child: Text('remote_timestamp', style: FluentTheme.of(context).typography.bodyStrong),),
+                                          Expanded(child: Text('to_delete', style: FluentTheme.of(context).typography.bodyStrong),),
                                         ],
                                       ),
                                     ),
@@ -436,7 +439,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                               remoteId: files[index]['remote_id']
                                                   .toString(),
                                               remoteTimestamp: files[index]['remote_timestamp']
-                                                  .toString()
+                                                  .toString(),
+                                              toDelete: files[index]['to_delete']
+                                              .toString()
                                           );
                                         },
                                       ),
@@ -460,6 +465,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                           Expanded(child: Text('local_modified', style: FluentTheme.of(context).typography.bodyStrong),),
                                           Expanded(child: Text('remote_id', style: FluentTheme.of(context).typography.bodyStrong),),
                                           Expanded(child: Text('remote_timestamp', style: FluentTheme.of(context).typography.bodyStrong),),
+                                          Expanded(child: Text('to_delete', style: FluentTheme.of(context).typography.bodyStrong),),
                                         ],
                                       ),
                                     ),
@@ -481,6 +487,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                               remoteId: folders[index]['remote_id']
                                                   .toString(),
                                               remoteTimestamp: folders[index]['remote_timestamp']
+                                                  .toString(),
+                                              toDelete: folders[index]['to_delete']
                                                   .toString()
                                           );
                                         },
@@ -863,6 +871,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                       remoteId: files[index]['remote_id']
                                           .toString(),
                                       remoteTimestamp: files[index]['remote_timestamp']
+                                          .toString(),
+                                      toDelete: files[index]['to_delete']
                                           .toString()
                                   );
                                 },
@@ -912,6 +922,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                       remoteId: folders[index]['remote_id']
                                           .toString(),
                                       remoteTimestamp: folders[index]['remote_timestamp']
+                                          .toString(),
+                                      toDelete: files[index]['to_delete']
                                           .toString()
                                   );
                                 },

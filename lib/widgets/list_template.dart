@@ -9,6 +9,7 @@ listTemplate({
     required String localModified,
     required String remoteId,
     required String remoteTimestamp,
+    required String toDelete,
 }){
     return Container(
       margin: EdgeInsets.all(10),
@@ -28,6 +29,8 @@ listTemplate({
             Expanded(child: Text(remoteId, style: FluentTheme.of(context).typography.caption)),
             SizedBox(width: 10,),
             Expanded(child: Text(remoteTimestamp, style: FluentTheme.of(context).typography.caption)),
+            SizedBox(width: 10,),
+            Expanded(child: Text(toDelete, style: FluentTheme.of(context).typography.caption)),
           ],
         ),
       ),

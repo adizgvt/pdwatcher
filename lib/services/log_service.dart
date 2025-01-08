@@ -6,22 +6,22 @@ class Log {
 
   static void info(String message) {
     final DateTime now = DateTime.now();
-    print('\x1B[32m${now.toLocal().toString().substring(0,19)} INFO: $message\x1B[0m');
+    print('\x1B[32m${now.toLocal().toString().substring(0,19)} INFO: $message\x1B[0m'.toLowerCase());
     _writeToFile('${now.toLocal().toString().substring(0,19)} INFO: $message');
   }
   static void warning(String message) {
     final DateTime now = DateTime.now();
-    print('\x1B[33m${now.toLocal().toString().substring(0,19)} WARNING: $message\x1B[0m');
+    print('\x1B[33m${now.toLocal().toString().substring(0,19)} WARNING: $message\x1B[0m'.toLowerCase());
     _writeToFile('${now.toLocal().toString().substring(0,19)} WARNING: $message');
   }
   static void error(String message) {
     final DateTime now = DateTime.now();
-    print('\x1B[31m${now.toLocal().toString().substring(0,19)} ERROR: $message\x1B[0m');
+    print('\x1B[31m${now.toLocal().toString().substring(0,19)} ERROR: $message\x1B[0m'.toLowerCase());
     _writeToFile('${now.toLocal().toString().substring(0,19)} ERROR: $message');
   }
   static void verbose(String message) {
     final DateTime now = DateTime.now();
-    print('\x1B[34m${now.toLocal().toString().substring(0,19)} VERBOSE: $message\x1B[0m');
+    print('\x1B[34m${now.toLocal().toString().substring(0,19)} VERBOSE: $message\x1B[0m'.toLowerCase());
     _writeToFile('${now.toLocal().toString().substring(0,19)} VERBOSE: $message');
   }
 

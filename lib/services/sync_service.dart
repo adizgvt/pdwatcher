@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:hashids2/hashids2.dart';
 import 'package:pdwatcher/models/api_response.dart';
 import 'package:pdwatcher/providers/sync_provider.dart';
 import 'package:pdwatcher/services/api_service.dart';
 import 'package:pdwatcher/services/database_service.dart';
+import 'package:pdwatcher/services/hash_service.dart';
 import 'package:pdwatcher/services/local_storage_service.dart';
 import 'package:pdwatcher/utils/extensions.dart';
 import 'package:provider/provider.dart';
@@ -164,7 +165,13 @@ abstract class SyncService {
 
           Log.verbose('Local Folder Data found in local db.');
 
-          if(file.path == localDBData[0].localPath.replaceAll('$watchedDir\\', '')){
+          if(localDBData[0].toDelete == 1){
+            Log.verbose('Local Folder marked for deletion');
+            Log.verbose('Skipping....');
+            continue;
+          }
+
+          if(file.path == localDBData[0].localPath.replaceFirst('$watchedDir\\', '')){
             Log.verbose('path is same');
           }else {
             Log.verbose('path is different');
@@ -216,6 +223,12 @@ abstract class SyncService {
         }else{
 
           Log.verbose('Existing Local File Found for ${file.path}');
+
+          if(localDBData[0].toDelete == 1){
+            Log.verbose('Local File marked for deletion');
+            Log.verbose('Skipping....');
+            continue;
+          }
 
           //compare remote_timestamp
           if(file.mtime == localDBData[0].remoteTimestamp!){
@@ -328,6 +341,8 @@ abstract class SyncService {
     await _uploadModifiedFoldersAndFiles(context);
     await syncLocalFileFolderWithLocalDb();
     await _uploadNewFoldersAndFiles(context);
+    await syncLocalFileFolderWithLocalDb();
+    await _deleteFoldersAndFiles(context);
 
 
     Provider.of<SyncProvider>(context, listen: false).isSyncing = false;
@@ -414,8 +429,8 @@ abstract class SyncService {
 
     //replace all can make error if file name recursively same //todo
     String fileName = file.localPath.split('\\').last;
-    String localPath = file.localPath.replaceAll('\\$fileName', '');
-    String path = localPath.replaceAll('$watchedDir\\', 'files/');
+    String localPath = file.localPath.replaceLast('\\$fileName', '');
+    String path = localPath.replaceFirst('$watchedDir\\', 'files/');
     print(fileName);
     print(localPath);
     print(path);
@@ -428,7 +443,7 @@ abstract class SyncService {
         serviceMethod: ServiceMethod.post,
         path: '/api/rename',
         data: {
-          'file_id'   : hashid.encode(file.remoteId.toString()),
+          'file_id'   : /*hashid.encode(*/file.remoteId.toString()/*)*/,
           'new_name'  : fileName
         }
       );
@@ -445,12 +460,13 @@ abstract class SyncService {
 
       databaseService.updateRemoteByPath(
           localPath: file.localPath,
+          mimetype: 0,
           localModified: 0
       );
     }
 
     String remoteName = remoteFileInfo.path.split('/').last;
-    String remotePath = remoteFileInfo.path.replaceAll('/$remoteName', '');
+    String remotePath = remoteFileInfo.path.replaceLast('/$remoteName', '');
 
     if(remotePath != path){
 
@@ -474,7 +490,7 @@ abstract class SyncService {
           serviceMethod: ServiceMethod.post,
           path: '/api/move',
           data: {
-            'file_id'         : hashid.encode(file.remoteId.toString()),
+            'file_id'         : /*hashid.encode(*/file.remoteId.toString()/*)*/,
             'destination_id'  : destination.remotefileId
           }
       );
@@ -491,6 +507,7 @@ abstract class SyncService {
 
       databaseService.updateRemoteByPath(
           localPath: file.localPath,
+          mimetype: 0,
           localModified: 0
       );
     }
@@ -625,8 +642,8 @@ abstract class SyncService {
       String watchedDir = await LocalStorage.getWatchedDirectory() ?? '';
 
       String fileName = file.localPath.split('\\').last;
-      String localPath = file.localPath.replaceAll('\\$fileName', '');
-      String path = localPath.replaceAll('$watchedDir\\', 'files/');
+      String localPath = file.localPath.replaceLast('\\$fileName', '');
+      String path = localPath.replaceFirst('$watchedDir\\', 'files/');
       print(fileName);
       print(localPath);
       print(path);
@@ -643,14 +660,14 @@ abstract class SyncService {
         continue;
       }
 
-      bool result = await FileService.upload(
+      Map<String, dynamic>? result = await FileService.upload(
           filePath: file.localPath,
           data: {
             'parent_id': parentId.toString()
           }
       );
 
-      if(result == false){
+      if(result == null){
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
           syncType: SyncType.newFile,
           index: index,
@@ -658,6 +675,14 @@ abstract class SyncService {
         );
         continue;
       }
+
+      databaseService.updateRemoteByPath(
+          localPath       : file.localPath,
+          mimetype        : result['mimetype'],
+          localModified   : 0,
+          remoteId        : result['id'],
+          remoteTimeStamp : result['timestamp']
+      );
 
       // final List<FileSystemEntity> chunks = await Directory('$tempDir$fileUuid')
       //     .list(recursive: false, followLinks: false)
@@ -696,5 +721,67 @@ abstract class SyncService {
     }
 
 
+  }
+
+  static _deleteFoldersAndFiles(context) async {
+
+    DatabaseService databaseService = DatabaseService();
+
+    List<FileFolderInfo> filesToDelete    = await databaseService.queryDeletedFiles();
+    List<FileFolderInfo> foldersToDelete  = await databaseService.queryDeletedFolders();
+
+    HashIds hashid = HashIds(
+      salt: 'k0c3k',
+      minHashLength: 7,
+      alphabet: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
+    );
+
+    for (var file in filesToDelete) {
+
+      ApiResponse apiResponse = await apiService(
+          serviceMethod: ServiceMethod.post,
+          path: '/api/destroy',
+          data: {
+            'file_id': HashIdService.instance.encode(file.remoteId.toString()),
+          }
+      );
+
+      if(apiResponse.statusCode != 200){
+        Log.error(apiResponse.message.toString());
+        continue;
+      }
+
+      Log.verbose('File ${file.localPath} successfully deleted in server');
+
+      await databaseService.deleteFile(
+          path: file.localPath,
+          forceDelete: true
+      );
+
+    }
+
+    for (var folder in foldersToDelete) {
+
+      ApiResponse apiResponse = await apiService(
+          serviceMethod: ServiceMethod.post,
+          path: '/api/destroy',
+          data: {
+            'file_id': HashIdService.instance.encode(folder.remoteId.toString()),
+          }
+      );
+
+      if(apiResponse.statusCode != 200){
+        Log.error(apiResponse.message.toString());
+        continue;
+      }
+
+      Log.verbose('File ${folder.localPath} successfully deleted in server');
+
+      await databaseService.deleteFile(
+          path: folder.localPath,
+          forceDelete: true
+      );
+
+    }
   }
 }

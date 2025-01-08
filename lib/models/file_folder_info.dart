@@ -8,6 +8,7 @@ class FileFolderInfo {
   final int localModified;
   final int? remoteId;
   final int? remoteTimestamp;
+  final int? toDelete;
   SyncStatus? syncStatus;
   String? message;
   double? syncProgress;
@@ -19,6 +20,7 @@ class FileFolderInfo {
     required this.localModified,
     this.remoteId,
     this.remoteTimestamp,
+    this.toDelete,
     this.syncStatus,
   });
 
@@ -31,6 +33,7 @@ class FileFolderInfo {
       localModified: map['local_modified'],
       remoteId: map['remote_id'],
       remoteTimestamp: map['remote_timestamp'],  // Default syncStatus if not provided
+      toDelete: map['to_delete'],  // Default syncStatus if not provided
     );
   }
 

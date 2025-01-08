@@ -27,10 +27,6 @@ void main() async {
     exit(1);
   }
 
-
-
-  LocalStorage.setWatchedDirectory('C:\\Users\\user\\Desktop\\watch');
-
   await WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   windowManager.setClosable(false);  //

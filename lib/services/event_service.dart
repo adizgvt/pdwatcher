@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:pdwatcher/providers/sync_provider.dart';
+import 'package:pdwatcher/utils/consts.dart';
 import 'package:provider/provider.dart';
 
 import '../utils/types.dart';
@@ -27,122 +28,16 @@ abstract class EventService {
     if(event.isDirectory){
 
       if(event.type == EventType.delete){
-        return {
-          'event': {
-            'action': QueueAction.delete,
-            'path'  : event.path,
-            'type'  : FileType.directory
-          },
-          'timestamp': DateTime.now().millisecondsSinceEpoch
-        };
+        return _deleteDirectory(event);
       }
 
       //IF USER CREATE NEW DIRECTORY OR MOVES A FOLDER FROM OUTSIDE WATCHED DIRECTORY INTO THE WATCHED DIRECTORY
       if(event.type == EventType.create){
-
-        String eventFolder = event.path.split('\\').last;
-
-        bool isMoveFolderEvent = false;
-
-        //IF LAST BUFFER EVENT IS DELETE AND THE FOLDER NAME IS SAME AS CURRENT EVENT, IT IS ACTUALLY A MOVE EVENT
-        if(
-        lastDeleteEventBuffer != null &&
-            lastDeleteEventBuffer['event'].type == EventType.delete &&
-            lastDeleteEventBuffer['event'].path.split('\\').last == eventFolder &&
-            //LAST DELETE EVENT AND CREATE EVENT MUST NOT BE 100 MILLISECONDS APART
-            (DateTime.fromMillisecondsSinceEpoch(lastDeleteEventBuffer['timestamp']).difference(DateTime.now()).inMilliseconds).abs() <= 100
-        ){
-          isMoveFolderEvent = true;
-        }
-
-        //CHECK IF FOLDER CONTAINS OTHER FILE
-        //IF CONTAIN, ADD EVENTS
-        List<dynamic> children = [];
-
-        final List<FileSystemEntity> entities = await Directory(event.path).list(recursive: true, followLinks: false).toList();
-
-        for(int i = 0; i < entities.length; i++){
-          children.add(
-              {
-                'event': {
-                  'action'                                    : isMoveFolderEvent ? QueueAction.move : QueueAction.create,
-                  'from'                                      : isMoveFolderEvent ? '${lastDeleteEventBuffer['event'].path}${entities[i].path.replaceAll(event.path, '')}' : null,
-                  isMoveFolderEvent ? 'to' : 'path'           : entities[i].path,
-                  'type'                                      : entities[i].toString().startsWith('File') ? FileType.file : FileType.directory
-                },
-                'timestamp': DateTime.now().millisecondsSinceEpoch
-              }
-          );
-        }
-
-        //PUT PARENT EVENT INFRONT
-        children.insert(
-            0,
-            {
-              'event': {
-                'action': isMoveFolderEvent ? QueueAction.move  : QueueAction.create,
-                'from'                                          : isMoveFolderEvent ? '${lastDeleteEventBuffer['event'].path}' : null,
-                isMoveFolderEvent ? 'to' : 'path'               : event.path,
-                'type'  : FileType.directory
-              },
-              'timestamp': DateTime.now().millisecondsSinceEpoch
-            }
-        );
-
-        if(isMoveFolderEvent){
-          lastDeleteEventBuffer = null;
-        }
-
-        return children;
-
-
+        return await _createDirectory(event, lastDeleteEventBuffer);
       }
 
       if(event.type == EventType.move){
-        String originalFolderName = event.path.split('\\').last;
-        String originalDirectory = event.path.replaceAll('\\$originalFolderName', '');
-
-        String destinationFolderName = event.destination.split('\\').last;
-        String destinationDirectory = event.destination.replaceAll('\\$destinationFolderName', '');
-
-        //----------------------------------------------------------------------
-        List<dynamic> children = [];
-
-        final List<FileSystemEntity> entities = await Directory(event.destination).list(recursive: true, followLinks: false).toList();
-
-        for(int i = 0; i < entities.length; i++){
-          print('''
-            new path : ${entities[i].path}
-            old path : ${event.path + entities[i].path.replaceAll(event.destination, '')}
-          ''');
-          children.add(
-              {
-                'event': {
-                  'action': originalDirectory == destinationDirectory ? QueueAction.rename : QueueAction.move,
-                  'from'  : event.path + entities[i].path.replaceAll(event.destination, ''),
-                  'to'    : entities[i].path,
-                  'type'  : entities[i].toString().startsWith('File') ? FileType.file : FileType.directory
-                },
-                'timestamp': DateTime.now().millisecondsSinceEpoch
-              }
-          );
-        }
-
-        //PUT PARENT EVENT INFRONT
-        children.insert(
-            0,
-            {
-              'event': {
-                'action': originalDirectory == destinationDirectory ? QueueAction.rename : QueueAction.move,
-                'from'  : event.path,
-                'to'    : event.destination,
-                'type'  : FileType.directory
-              },
-              'timestamp': DateTime.now().millisecondsSinceEpoch
-            }
-        );
-
-        return children;
+        return await _moveDirectory(event);
       }
 
     }else{
@@ -153,138 +48,272 @@ abstract class EventService {
 
       //CREATE
       if(event.type == EventType.create){
-        //IGNORE ~$XX.docx && ~$XX.pptx
-        //$~ is a lock file, it means that the original file is currently opened by an application
-        if(originalFileName.startsWith('~\$') && ['.docx', '.pptx'].any(originalFileName.endsWith)){
-          return null;
-        }
-
-        //IGNORE CTREATED TEMP FILE
-        if(event.path.endsWith('.tmp')){
-          print('event type: ${event.type}');
-          return null;
-        }
-
-        return  {
-          'event': {
-            'action': QueueAction.create,
-            'path'  : event.path,
-            'type'  : FileType.file
-          },
-          'timestamp': DateTime.now().millisecondsSinceEpoch
-        };
-
+        return _createFile(event, originalFileName);
       }
 
       //MODIFY
       if(event.type == EventType.modify){
-
-        if(event.path.endsWith('.tmp')){
-          return null;
-        }
-
-        if(originalFileName.startsWith('~\$')){
-          return null;
-        }
-
-        return  {
-          'event': {
-            'action': QueueAction.modify,
-            'path'  : event.path,
-            'type'  : FileType.file
-          },
-          'timestamp': DateTime.now().millisecondsSinceEpoch
-        };
+        return _modifyFile(event, originalFileName);
       }
 
       //DELETE
       if(event.type == EventType.delete){
-        //moving file from watched dir to unwatched dir also considered as delete
-
-        if(event.path.endsWith('.tmp')){
-          return null;
-        }
-
-        if(originalFileName.startsWith('~\$')){
-          return null;
-        }
-
-        return  {
-          'event': {
-            'action': QueueAction.delete,
-            'path'  : event.path,
-            'type'  : FileType.file
-          },
-          'timestamp': DateTime.now().millisecondsSinceEpoch
-        };
+        return _deleteFile(event, originalFileName);
       }
 
       //MOVE AND RENAME
       if(event.type == EventType.move){
-
-        String destinationFileName = event.destination.split('\\').last;
-        String destinationDirectory = event.destination.replaceAll('\\$destinationFileName','');
-
-        // print('Original     FileName: $originalFileName');
-        // print('Original     Directory: $originalDirectory');
-        // print('Destination  FileName : $destinationFileName');
-        // print('Destination  Directory: $destinationDirectory');
-
-        //RENAME
-        if(originalDirectory == destinationDirectory){
-
-          //IGNORE WHEN MOVING TMP FILE
-          if(['.docx', '.xlsx', '.xls', '.pptx'].any(originalFileName.endsWith) && destinationFileName.endsWith('.tmp')){
-
-            return null;
-
-          }
-
-          //RECORD WHEN USER SAVE OFFICE FILES
-          if(originalFileName.endsWith('.tmp') && ['.docx', '.xlsx', '.xls', '.pptx'].any(destinationFileName.endsWith)){
-
-            return  {
-              'event': {
-                'action': QueueAction.modify,
-                'path'  : event.destination,
-                'type'  : FileType.file
-              },
-              'timestamp': DateTime.now().millisecondsSinceEpoch
-            };
-
-          }
-
-          return  {
-            'event': {
-              'action': QueueAction.rename,
-              'from'  : event.path,
-              'to'    : event.destination,
-              'type'  : FileType.file
-            },
-            'timestamp': DateTime.now().millisecondsSinceEpoch
-          };
-        }
-
-        else{
-
-          //IF FILE MOVED to path outside watched directory, do nothing
-          if(!destinationDirectory.contains(watchedDirectory)){
-            print('File moved outside of watched directory');
-            return null;
-          }
-
-          return  {
-            'event': {
-              'action': QueueAction.move,
-              'from'  : event.path,
-              'to'    : event.destination,
-              'type'  : FileType.file
-            },
-            'timestamp': DateTime.now().millisecondsSinceEpoch
-          };
-
-        }
+        return _moveFile(event, originalFileName, originalDirectory, watchedDirectory);
       }
+    }
+  }
+
+  static _deleteDirectory(event){
+    return {
+      'event': {
+        'action': QueueAction.delete,
+        'path'  : event.path,
+        'type'  : FileType.directory
+      },
+      'timestamp': DateTime.now().millisecondsSinceEpoch
+    };
+  }
+
+  static Future<List<Map<String, dynamic>>> _createDirectory(event, lastDeleteEventBuffer) async {
+
+    String eventFolder = event.path.split('\\').last;
+
+    bool isMoveFolderEvent = false;
+
+    //IF LAST BUFFER EVENT IS DELETE AND THE FOLDER NAME IS SAME AS CURRENT EVENT, IT IS ACTUALLY A MOVE EVENT
+    if(
+    lastDeleteEventBuffer != null &&
+        lastDeleteEventBuffer['event'].type == EventType.delete &&
+        lastDeleteEventBuffer['event'].path.split('\\').last == eventFolder &&
+        //LAST DELETE EVENT AND CREATE EVENT MUST NOT BE 100 MILLISECONDS APART
+        (DateTime.fromMillisecondsSinceEpoch(lastDeleteEventBuffer['timestamp']).difference(DateTime.now()).inMilliseconds).abs() <= 100
+    ){
+      isMoveFolderEvent = true;
+    }
+
+    //CHECK IF FOLDER CONTAINS OTHER FILE
+    //IF CONTAIN, ADD EVENTS
+    List<Map<String, dynamic>> children = [];
+
+    final List<FileSystemEntity> entities = await Directory(event.path).list(recursive: true, followLinks: false).toList();
+
+    for(int i = 0; i < entities.length; i++){
+      children.add(
+          {
+            'event': {
+              'action'                                    : isMoveFolderEvent ? QueueAction.move : QueueAction.create,
+              'from'                                      : isMoveFolderEvent ? '${lastDeleteEventBuffer['event'].path}${entities[i].path.replaceAll(event.path, '')}' : null,
+              isMoveFolderEvent ? 'to' : 'path'           : entities[i].path,
+              'type'                                      : entities[i].toString().startsWith('File') ? FileType.file : FileType.directory
+            },
+            'timestamp': DateTime.now().millisecondsSinceEpoch
+          }
+      );
+    }
+
+    //PUT PARENT EVENT INFRONT
+    children.insert(
+        0,
+        {
+          'event': {
+            'action': isMoveFolderEvent ? QueueAction.move  : QueueAction.create,
+            'from'                                          : isMoveFolderEvent ? '${lastDeleteEventBuffer['event'].path}' : null,
+            isMoveFolderEvent ? 'to' : 'path'               : event.path,
+            'type'  : FileType.directory
+          },
+          'timestamp': DateTime.now().millisecondsSinceEpoch
+        }
+    );
+
+    if(isMoveFolderEvent){
+      lastDeleteEventBuffer = null;
+    }
+
+    return children;
+
+  }
+
+  static Future<List<Map<String, dynamic>>?> _moveDirectory(event) async {
+
+    String originalFolderName = event.path.split('\\').last;
+    String originalDirectory = event.path.replaceAll('\\$originalFolderName', '');
+
+    String destinationFolderName = event.destination.split('\\').last;
+    String destinationDirectory = event.destination.replaceAll('\\$destinationFolderName', '');
+
+    //----------------------------------------------------------------------
+    List<Map<String,dynamic>> children = [];
+
+    final List<FileSystemEntity> entities = await Directory(event.destination).list(recursive: true, followLinks: false).toList();
+
+    for(int i = 0; i < entities.length; i++){
+      print('''
+            new path : ${entities[i].path}
+            old path : ${event.path + entities[i].path.replaceAll(event.destination, '')}
+          ''');
+      children.add(
+          {
+            'event': {
+              'action': originalDirectory == destinationDirectory ? QueueAction.rename : QueueAction.move,
+              'from'  : event.path + entities[i].path.replaceAll(event.destination, ''),
+              'to'    : entities[i].path,
+              'type'  : entities[i].toString().startsWith('File') ? FileType.file : FileType.directory
+            },
+            'timestamp': DateTime.now().millisecondsSinceEpoch
+          }
+      );
+    }
+
+    //PUT PARENT EVENT INFRONT
+    children.insert(
+        0,
+        {
+          'event': {
+            'action': originalDirectory == destinationDirectory ? QueueAction.rename : QueueAction.move,
+            'from'  : event.path,
+            'to'    : event.destination,
+            'type'  : FileType.directory
+          },
+          'timestamp': DateTime.now().millisecondsSinceEpoch
+        }
+    );
+
+    return children;
+
+  }
+
+  static Map<String,dynamic>? _createFile(event, originalFileName){
+
+    //IGNORE ~$XX.docx && ~$XX.pptx
+    //$~ is a lock file, it means that the original file is currently opened by an application
+    if(originalFileName.startsWith('~\$') && ['.docx', '.pptx'].any(originalFileName.endsWith)){
+      return null;
+    }
+
+    //IGNORE CTREATED TEMP FILE
+    if(event.path.endsWith('.tmp')){
+      print('event type: ${event.type}');
+      return null;
+    }
+
+    return  {
+      'event': {
+        'action': QueueAction.create,
+        'path'  : event.path,
+        'type'  : FileType.file
+      },
+      'timestamp': DateTime.now().millisecondsSinceEpoch
+    };
+
+  }
+
+  static Map<String,dynamic>? _modifyFile(event, originalFileName){
+    if(event.path.endsWith('.tmp')){
+      return null;
+    }
+
+    if(originalFileName.startsWith('~\$')){
+      return null;
+    }
+
+    return  {
+      'event': {
+        'action': QueueAction.modify,
+        'path'  : event.path,
+        'type'  : FileType.file
+      },
+      'timestamp': DateTime.now().millisecondsSinceEpoch
+    };
+  }
+
+  static Map<String,dynamic>? _deleteFile(event, originalFileName){
+    //moving file from watched dir to unwatched dir also considered as delete
+
+    if(event.path.endsWith('.tmp')){
+      return null;
+    }
+
+    if(originalFileName.startsWith('~\$')){
+      return null;
+    }
+
+    return  {
+      'event': {
+        'action': QueueAction.delete,
+        'path'  : event.path,
+        'type'  : FileType.file
+      },
+      'timestamp': DateTime.now().millisecondsSinceEpoch
+    };
+  }
+
+  static Map<String,dynamic>? _moveFile(event, originalFileName, originalDirectory, watchedDirectory){
+    String destinationFileName = event.destination.split('\\').last;
+    String destinationDirectory = event.destination.replaceAll('\\$destinationFileName','');
+
+    // print('Original     FileName: $originalFileName');
+    // print('Original     Directory: $originalDirectory');
+    // print('Destination  FileName : $destinationFileName');
+    // print('Destination  Directory: $destinationDirectory');
+
+    //RENAME
+    if(originalDirectory == destinationDirectory){
+
+      //IGNORE WHEN MOVING TMP FILE
+      if(microsoftOfficeExtensions.any(originalFileName.endsWith) && destinationFileName.endsWith('.tmp')){
+
+        return null;
+
+      }
+
+      //RECORD WHEN USER SAVE OFFICE FILES
+      if(originalFileName.endsWith('.tmp') && microsoftOfficeExtensions.any(destinationFileName.endsWith)){
+
+        return  {
+          'event': {
+            'action': QueueAction.modify,
+            'path'  : event.destination,
+            'type'  : FileType.file
+          },
+          'timestamp': DateTime.now().millisecondsSinceEpoch
+        };
+
+      }
+
+      return  {
+        'event': {
+          'action': QueueAction.rename,
+          'from'  : event.path,
+          'to'    : event.destination,
+          'type'  : FileType.file
+        },
+        'timestamp': DateTime.now().millisecondsSinceEpoch
+      };
+    }
+
+    else{
+
+      //IF FILE MOVED to path outside watched directory, do nothing
+      if(!destinationDirectory.contains(watchedDirectory)){
+        print('File moved outside of watched directory');
+        return null;
+      }
+
+      return  {
+        'event': {
+          'action': QueueAction.move,
+          'from'  : event.path,
+          'to'    : event.destination,
+          'type'  : FileType.file
+        },
+        'timestamp': DateTime.now().millisecondsSinceEpoch
+      };
+
     }
   }
 
