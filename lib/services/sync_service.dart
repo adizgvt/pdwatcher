@@ -177,6 +177,17 @@ abstract class SyncService {
             Log.verbose('path is different');
             Log.verbose('Local  : ${localDBData[0].localPath}');
             Log.verbose('Remote : ${file.path}');
+            
+            final d = Directory(localDBData[0].localPath);
+            try {
+
+              String folderName = localDBData[0].localPath.split('\\').last;
+              final newD = await d.rename(localDBData[0].localPath.toString().replaceLast(folderName, file.name));
+              print('Folder renamed to: ${newD.path}');
+            } catch (e) {
+              print('Error renaming Folder: $e');
+            }
+            
           }
         }
       }
@@ -360,7 +371,9 @@ abstract class SyncService {
   DatabaseService databaseService = DatabaseService();
 
   List<FileFolderInfo> modifiedFolders = await databaseService.queryModifiedFolders();
+  print(modifiedFolders.length);
   List<FileFolderInfo> modifiedFiles = await databaseService.queryModifiedFiles();
+  print(modifiedFiles.length);
 
   Provider.of<SyncProvider>(context, listen: false).setModifiedFolders(modifiedFolders);
   Provider.of<SyncProvider>(context, listen: false).setModifiedFiles(modifiedFiles);
@@ -430,7 +443,7 @@ abstract class SyncService {
     //replace all can make error if file name recursively same //todo
     String fileName = file.localPath.split('\\').last;
     String localPath = file.localPath.replaceLast('\\$fileName', '');
-    String path = localPath.replaceFirst('$watchedDir\\', 'files/');
+    String path = file.localPath.replaceFirst('$watchedDir\\', 'files/');
     print(fileName);
     print(localPath);
     print(path);
@@ -443,7 +456,7 @@ abstract class SyncService {
         serviceMethod: ServiceMethod.post,
         path: '/api/rename',
         data: {
-          'file_id'   : /*hashid.encode(*/file.remoteId.toString()/*)*/,
+          'path'   : remoteFileInfo.path,
           'new_name'  : fileName
         }
       );
@@ -453,7 +466,7 @@ abstract class SyncService {
           syncType: SyncType.modifiedFile,
           index: index,
           status: SyncStatus.failed,
-          message: 'Fail to call api rename'
+          message: apiResponse.message ?? 'Fail to call api rename'
         );
         continue;
       }

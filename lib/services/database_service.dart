@@ -382,8 +382,10 @@ class DatabaseService {
 
     var result = await db.query(
         'files',
-        where : 'local_modified = 1 AND remote_id != NULL AND to_delete = 0'
+        where : 'local_modified = 1 AND remote_id IS NOT NULL AND (to_delete = 0 OR to_delete IS NULL)'
     );
+
+    print(result);
 
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();
   }
@@ -418,7 +420,7 @@ class DatabaseService {
 
     var result = await db.query(
         'folders',
-        where : 'local_modified = 1 AND remote_id != NULL AND to_delete = 0'
+        where : 'local_modified = 1 AND remote_id IS NOT NULL AND to_delete IN (0,NULL)'
     );
 
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();
