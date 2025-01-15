@@ -58,6 +58,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Timer? timer;
 
+  Timer? syncTimer;
+
+
   @override
   void initState() {
 
@@ -167,11 +170,19 @@ class _MyHomePageState extends State<MyHomePage> {
         if(
           actionQueue.first['event']['action'] == QueueAction.delete &&
           actionQueue.length > 1 &&
-          actionQueue[1]['event']['action'] == QueueAction.move &&
-          actionQueue[0]['event']['path'] == actionQueue[1]['event']['from']
+          actionQueue[1]['event']['action'] == QueueAction.create &&
+          actionQueue[0]['event']['path'].toString().split('\\').last == actionQueue[1]['event']['path'].split('\\').last //means same file
         ){
+
+          //ignore first
           print('ignoring ${actionQueue.first}');
-          //IF CURRENT QUEUE IS DELETE, NEXT QUEUE IS MOVE, AND DELETE PATH IS SAME WITH MOVE SOURCE, DO NOTHING
+
+          //update next queue create -> move
+          print('updating next queue');
+          actionQueue[1]['event']['action'] = QueueAction.move;
+          actionQueue[1]['event']['from']   = actionQueue[0]['event']['path'];
+          actionQueue[1]['event']['to']     = actionQueue[1]['event']['path'];
+
         } else {
           databaseService.updateLocalDatabaseRecord(
             queue: actionQueue.first,
@@ -191,6 +202,13 @@ class _MyHomePageState extends State<MyHomePage> {
       runningQueue = false;
 
     });
+
+    syncTimer = Timer.periodic(const Duration(seconds: 10), (Timer timer) async {
+
+      await SyncService.syncRemoteToLocal(context);
+      await SyncService.syncLocalToRemote(context);
+
+    });
   }
 
   _queryFilesAndFolders() async {
@@ -206,10 +224,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
+
     if(timer != null){
       timer!.cancel();
       timer = null;
     }
+
+    if(syncTimer != null){
+      syncTimer!.cancel();
+      syncTimer = null;
+    }
+
     super.dispose();
   }
 
@@ -301,7 +326,13 @@ class _MyHomePageState extends State<MyHomePage> {
                     label: const Text('Test Button'),
                     onPressed: () async {
 
-                      FileService.download(fileId: 638, tempName: 'asd');
+                      //print(await databaseService.queryAllFiles());
+
+                      print(await databaseService.updateRemoteNullByPath(
+                          localPath: 'C:\\Users\\user\\Desktop\\watch\\New folder (2)\\wiring-r15-v3_convert_compress.pdf',
+                          mimetype: 0,
+                        )
+                      );
       
                     }
                 ),

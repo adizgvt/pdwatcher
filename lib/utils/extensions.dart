@@ -34,4 +34,22 @@ extension FileNameExtension on String {
 
     return before + newSubstring + after;  // Rebuild the string with the replacement
   }
+
+  String removeTrailingSlash(){
+    String result = endsWith('/') || endsWith('\\') ? substring(0, length - 1) : this;
+    return result;
+  }
+
+  String removeLeadingSlash(){
+    String result = startsWith('/') || startsWith('\\') ? substring(1, length) : this;
+    return result;
+  }
+
+  String replaceBackSlashWithSlash(){
+    return replaceAll('\\', '/');
+  }
+
+  String removeDuplicateSlash(){
+    return replaceAll('//', '/');
+  }
 }

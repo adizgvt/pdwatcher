@@ -68,6 +68,18 @@ class DatabaseService {
     required int timestamp,
   }) async {
     final db = await database;
+
+    var result = await db.query(
+        'files',
+        where: 'local_path =?',
+        whereArgs: [path]
+    );
+
+    if(result.isNotEmpty){
+      Log.error('Duplicate entry');
+      return;
+    }
+
     await db.insert(
       'files', 
       {
@@ -124,15 +136,32 @@ class DatabaseService {
   }) async {
     final db = await database;
 
-    db.update(
+    // Step 1: Check if a record with the destination path exists
+    final result = await db.query(
+      'files',
+      where: 'local_path = ?',
+      whereArgs: [destination],
+    );
+
+    // Step 2: If a record exists with the destination path, delete the record with the original path
+    if (result.isNotEmpty) {
+      await db.delete(
+        'files',
+        where: 'local_path = ?',
+        whereArgs: [path],
+      );
+    }
+
+    // Step 3: Update the record with the new destination
+    await db.update(
       'files',
       {
-        'local_path'        : destination,
-        'local_timestamp'   : timestamp,
-        'local_modified'    : 1
-      }, // The values to update
-      where     : 'local_path = ?',
-      whereArgs : [path],
+        'local_path'      : destination,
+        'local_timestamp' : timestamp,
+        'local_modified'  : 1,
+      },
+      where: 'local_path = ?',
+      whereArgs: [destination],
     );
 
     print('patutnya jadi');
@@ -161,18 +190,26 @@ class DatabaseService {
     required String path,
     required String destination,
     required int timestamp,
+    bool updateLocalModified = false
   }) async {
     final db = await database;
 
     print('moving $path $destination');
 
+    var field = {
+      'local_path'        : destination,
+      'local_timestamp'   : timestamp,
+    };
+
+    if(updateLocalModified){
+      field.addAll({
+        'local_modified'    : 1
+      });
+    }
+
     db.update(
       'files',
-      {
-        'local_path'      : destination,
-        'local_timestamp' : timestamp,
-        'local_modified'  : 1
-      },
+      field,
       where     : 'local_path = ?',
       whereArgs : [path],
       );
@@ -182,16 +219,24 @@ class DatabaseService {
     required String path,
     required String destination,
     required int timestamp,
+    bool updateLocalModified = false
   }) async {
     final db = await database;
 
+    var field = {
+      'local_path'        : destination,
+      'local_timestamp'   : timestamp,
+    };
+
+    if(updateLocalModified){
+      field.addAll({
+        'local_modified'    : 1
+      });
+    }
+
     db.update(
       'folders',
-      {
-        'local_path'        : destination,
-        'local_timestamp'   : timestamp,
-        'local_modified'    : 1
-      },
+      field,
       where     : 'local_path = ?',
       whereArgs : [path],
       );
@@ -327,6 +372,24 @@ class DatabaseService {
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();
   }
 
+  Future updateRemoteNullByPath({required int mimetype, required String localPath}) async {
+
+    final db = await database;
+
+    final target = mimetype == 2 ? 'folders' : 'files';
+
+    return db.update(
+        target,
+        {
+          'local_modified'    : 0,
+          'remote_id'         : null,
+          'remote_timestamp'  : null,
+        },
+        where: 'local_path = ?',
+        whereArgs: [localPath]
+    );
+  }
+
   Future updateRemoteByPath({
     required String localPath,
     required int mimetype,
@@ -352,12 +415,12 @@ class DatabaseService {
     }
 
     var modifiedCount = await db.update(
-
       mimetype == 2 ? 'folders' : 'files',
       toUpdate,
       where: 'local_path = ?',
       whereArgs: [localPath],
     );
+
     Log.verbose('$localPath|$mimetype|$remoteId|$remoteTimeStamp');
     Log.verbose('updateRemoteByPath | Updated Rows: $modifiedCount');
 
@@ -420,7 +483,7 @@ class DatabaseService {
 
     var result = await db.query(
         'folders',
-        where : 'local_modified = 1 AND remote_id IS NOT NULL AND to_delete IN (0,NULL)'
+        where : 'local_modified = 1 AND remote_id IS NOT NULL AND (to_delete = 0 OR to_delete IS NULL)'
     );
 
     return result.map((map) => FileFolderInfo.fromMap(map)).toList();
@@ -468,9 +531,10 @@ class DatabaseService {
 
     if(queue['event']['action'] == QueueAction.move){
       db._moveFile(
-        path        : queue['event']['from'], 
-        destination : queue['event']['to'],
-        timestamp   : queue['timestamp']
+        path                : queue['event']['from'],
+        destination         : queue['event']['to'],
+        timestamp           : queue['timestamp'],
+        updateLocalModified : queue['update_modified']
       );
     }
 
@@ -501,7 +565,8 @@ class DatabaseService {
       db._moveFolder(
         path        : queue['event']['from'], 
         destination : queue['event']['to'],
-        timestamp   : queue['timestamp']
+        timestamp   : queue['timestamp'],
+        updateLocalModified: queue['update_modified']
       );
     }
 

@@ -111,7 +111,8 @@ abstract class EventService {
               isMoveFolderEvent ? 'to' : 'path'           : entities[i].path,
               'type'                                      : entities[i].toString().startsWith('File') ? FileType.file : FileType.directory
             },
-            'timestamp': DateTime.now().millisecondsSinceEpoch
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+            'update_modified' : isMoveFolderEvent? false : true
           }
       );
     }
@@ -164,7 +165,8 @@ abstract class EventService {
               'to'    : entities[i].path,
               'type'  : entities[i].toString().startsWith('File') ? FileType.file : FileType.directory
             },
-            'timestamp': DateTime.now().millisecondsSinceEpoch
+            'timestamp'       : DateTime.now().millisecondsSinceEpoch,
+            'update_modified' : originalDirectory == destinationDirectory ? true : false
           }
       );
     }
@@ -191,7 +193,7 @@ abstract class EventService {
 
     //IGNORE ~$XX.docx && ~$XX.pptx
     //$~ is a lock file, it means that the original file is currently opened by an application
-    if(originalFileName.startsWith('~\$') && ['.docx', '.pptx'].any(originalFileName.endsWith)){
+    if(originalFileName.startsWith('~\$') && microsoftOfficeExtensions.any(originalFileName.endsWith)){
       return null;
     }
 

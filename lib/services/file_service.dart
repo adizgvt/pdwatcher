@@ -141,16 +141,16 @@ class FileService {
     Log.verbose(response.statusCode.toString());
     Log.verbose(response.toString());
 
-    if(response.statusCode != 200){
+    if(![200,201].contains(response.statusCode)){
       return null;
     }
 
     final uploadResponse = response.data;
 
     return {
-      'id':       uploadResponse['fileid'],
-      'timstamp': uploadResponse['mtime'],
-      'mimetype': uploadResponse['mimetype'],
+      'id'        : uploadResponse['fileid'],
+      'timestamp' : uploadResponse['mtime'],
+      'mimetype'  : uploadResponse['mimetype'],
     };
 
   }

@@ -16,4 +16,8 @@ class HashIdService {
   String encode(String data) {
     return _hashIds.encode(data);
   }
+
+  int decode(String hash) {
+    return _hashIds.decode(hash).first;
+  }
 }

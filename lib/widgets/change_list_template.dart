@@ -74,7 +74,7 @@ changeListTemplate(context, {required FileChangeEnum changeType}){
                         Text(': ${DateTime.fromMillisecondsSinceEpoch(data[index].mtime*1000).toLocal().toString().substring(0,19)}', style: TextStyle(fontSize: 10)),
                       ],
                     ),
-                    if(data[index].mimetype != 2 && data[index].syncStatus != null)
+                    //if(data[index].mimetype != 2)
                     TableRow(
                       children: [
                         Text('Status', style: TextStyle(fontSize: 10)),
