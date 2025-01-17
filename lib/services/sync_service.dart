@@ -634,6 +634,7 @@ abstract class SyncService {
     );
 
     try{
+
       //todo check if file is open
       final raf = File(file.localPath).renameSync(file.localPath);
 
