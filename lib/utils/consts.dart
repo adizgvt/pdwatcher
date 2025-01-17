@@ -1,7 +1,8 @@
 const baseDir = 'C:/pdwatcher/';
 
 const tempDir = '${baseDir}temp/';
-const logDir = '${baseDir}logs/';
+const logDir  = '${baseDir}logs/';
+const dbDir   = '${baseDir}data/';
 
 String initialUsername      = 'admin@pocketdata.com.my';
 String initialPassword      = '1';

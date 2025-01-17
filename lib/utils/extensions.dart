@@ -49,6 +49,10 @@ extension FileNameExtension on String {
     return replaceAll('\\', '/');
   }
 
+  String replacelashWithBackSlash(){
+    return replaceAll('\\', '/');
+  }
+
   String removeDuplicateSlash(){
     return replaceAll('//', '/');
   }

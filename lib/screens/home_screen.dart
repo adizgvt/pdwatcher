@@ -749,6 +749,28 @@ class _MyHomePageState extends State<MyHomePage> {
               )
             ),
           ),
+            PaneItem(
+                icon: Icon(FluentIcons.list),
+                body: CustomScrollView(
+                  slivers: [
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                            (BuildContext context, int index) {
+                          // Get log messages from the Log class
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              Log.logMessages[index], // Display the log message
+                              style: TextStyle(fontSize: 16, fontFamily: 'Courier'),
+                            ),
+                          );
+                        },
+                        childCount: Log.logMessages.length, // The number of log messages to display
+                      ),
+                    ),
+                  ],
+                )
+            )
           ],
           footerItems: [
             PaneItem(

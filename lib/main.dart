@@ -26,10 +26,9 @@ void main() async {
     Log.error("This application only runs on Windows.");
     exit(1);
   }
-
   await WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
-  windowManager.setClosable(false);  //
+  //windowManager.setClosable(false);  //
   windowManager.setMinimumSize(Size(800, 600));
 
   runApp(MyApp());

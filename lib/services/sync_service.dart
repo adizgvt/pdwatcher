@@ -69,7 +69,8 @@ abstract class SyncService {
       if (!foldersInWatchedDirectory.any((entity) => entity.path == folder['local_path'])) {
         Log.info('Path: ${folder['local_path']}, Action: deleteFolder');
         databaseService.deleteFolder(
-          path: folder['local_path']
+          path: folder['local_path'],
+          forceDelete: true
         );
       }
     }
@@ -79,7 +80,8 @@ abstract class SyncService {
       if (!foldersInWatchedDirectory.any((entity) => entity.path == file['local_path'])) {
         Log.info('Path: ${file['local_path']}, Action: deleteFile');
         databaseService.deleteFile(
-          path: file['local_path']
+          path: file['local_path'],
+          forceDelete: true
         );
       }
     }
@@ -166,7 +168,7 @@ abstract class SyncService {
 
             await databaseService.updateRemoteByPath(
                 localPath: localPath,
-                mimetype: file.mimetype,
+                type: FileType.directory,
                 remoteId: file.remotefileId,
                 remoteTimeStamp: file.mtime
             );
@@ -186,6 +188,13 @@ abstract class SyncService {
               Provider.of<SyncProvider>(context, listen: false).change!.files[index].syncStatus = SyncStatus.success;
               Provider.of<SyncProvider>(context, listen: false).updateUI();
 
+              await databaseService.updateRemoteByPath(
+                  localPath: localPath,
+                  type: FileType.directory,
+                  remoteId: file.remotefileId,
+                  remoteTimeStamp: null
+              );
+
             }else {
               Log.verbose('path is different');
               Log.verbose('Local  : ${localDBData[0].localPath}');
@@ -195,7 +204,6 @@ abstract class SyncService {
 
               String folderName = localDBData[0].localPath.split('\\').last;
 
-              //local change after remote
               if(localDBData[0].localTimestamp >= file.mtime){
                 print('local folder named changed after remote');
                 //remote change after local
@@ -241,7 +249,7 @@ abstract class SyncService {
 
             await databaseService.updateRemoteByPath(
                 localPath: localPath,
-                mimetype: file.mimetype,
+                type: FileType.file,
                 remoteId: file.remotefileId,
                 remoteTimeStamp: file.mtime
             );
@@ -262,6 +270,7 @@ abstract class SyncService {
 
               //if local not modified, remote renamed, timestamp don't change IDK why
               if(localDBData[0].localModified == 0 && localDBData[0].localPath != localPath){
+
                 File(localDBData[0].localPath).renameSync(localPath);
                 Log.verbose('Renamed File for ${file.path}');
               }
@@ -325,7 +334,7 @@ abstract class SyncService {
 
             await databaseService.updateRemoteByPath(
               localPath: localPath,
-              mimetype: file.mimetype,
+              type: FileType.file,
               remoteId: file.remotefileId,
               remoteTimeStamp: file.mtime,
             );
@@ -346,8 +355,42 @@ abstract class SyncService {
 
     }
 
-    return true;
+    for (FilesDeleted fileToDelete in change.filesDeleted){
 
+      //search in files first
+      bool isFile = true;
+      List<FileFolderInfo> toDelete = await databaseService.queryByRemoteId(remoteId: fileToDelete.fileid, mimetype: 0);
+
+      //if empty search in folders instead
+      if(toDelete.isEmpty){
+        isFile = false;
+        Log.error('not found files, searching in folders');
+        toDelete = await databaseService.queryByRemoteId(remoteId: fileToDelete.fileid, mimetype: 2);
+
+      }
+
+      if(toDelete.isEmpty){
+        Log.error('File to delete with id ${fileToDelete.fileid} not found');
+        continue;
+      }
+
+      try{
+
+        if(isFile){
+          File(toDelete[0].localPath).deleteSync();
+          databaseService.deleteFile(path: toDelete[0].localPath, forceDelete: true);
+        }
+        else {
+          Directory(toDelete[0].localPath).deleteSync();
+          databaseService.deleteFolder(path: toDelete[0].localPath, forceDelete: true);
+        }
+      } catch (e){
+        print('error deleting $e');
+      }
+
+    }
+
+    return true;
 
   }
 
@@ -412,7 +455,13 @@ abstract class SyncService {
   Provider.of<SyncProvider>(context, listen: false).setModifiedFolders(modifiedFolders);
   Provider.of<SyncProvider>(context, listen: false).setModifiedFiles(modifiedFiles);
 
+  String watchedDir = await LocalStorage.getWatchedDirectory() ?? '';
+
   for (var folder in modifiedFolders) {
+
+    if(folder.toDelete == 1){
+      continue;
+    }
 
     print('weng');
 
@@ -443,6 +492,10 @@ abstract class SyncService {
 
     FileElement? remoteFileInfo = change.files.firstWhereOrNull((element) => element.remotefileId == folder.remoteId);
 
+    if(remoteFileInfo == null){
+      continue;
+    }
+
     String localFolderName = folder.localPath.split('\\').last;
     String remoteFolderName = remoteFileInfo!.name;
 
@@ -465,13 +518,96 @@ abstract class SyncService {
             message: apiResponse.message ?? 'Fail to call api rename'
         );
         continue;
+      }else{
+        //if succeed need to refetch change
+
+        ApiResponse apiResponse = await apiService(
+            serviceMethod: ServiceMethod.post,
+            path: '/api/getChanges'
+        );
+
+        if(apiResponse.statusCode != 200){
+          Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+              syncType: SyncType.modifiedFolder,
+              index: index,
+              status: SyncStatus.failed,
+              message: 'error calling api getChanges'
+          );
+          continue;
+        }
+
+        change = changeFromJson(jsonEncode(apiResponse.data));
+
+        remoteFileInfo = null;
+
+        remoteFileInfo = change.files.firstWhereOrNull((element) => element.remotefileId == folder.remoteId);
+
+        if(remoteFileInfo == null){
+          continue;
+        }
       }
 
       databaseService.updateRemoteByPath(
           localPath: folder.localPath,
-          mimetype: remoteFileInfo.mimetype,
+          type: FileType.directory,
           localModified: 0,
       );
+    }
+
+    String localPath = folder.localPath
+        .replaceFirst(watchedDir, 'files/')
+        .replaceBackSlashWithSlash()
+        .removeDuplicateSlash()
+        .replaceLast(localFolderName, '')
+        .removeTrailingSlash();
+
+    String remotePath = remoteFileInfo.path
+        .replaceLast(localFolderName, '')
+        .removeTrailingSlash();
+
+    print('localPath: $localPath | remoteFolderPath $remotePath');
+
+    if(localPath != remotePath){
+
+      int? destinationId = change.files.firstWhereOrNull((element) => element.path == localPath)?.remotefileId;
+
+      destinationId ??= Provider.of<UserProvider>(context, listen: false).user?.rootParentId;
+
+      if(destinationId == null){
+        Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+            syncType  : SyncType.modifiedFile,
+            index     : index,
+            status    : SyncStatus.failed,
+            message   : 'Unknown move destination'
+        );
+        continue;
+      }
+
+      apiResponse = await apiService(
+          serviceMethod: ServiceMethod.post,
+          path: '/api/move',
+          data: {
+            'file_id'         : folder.remoteId,
+            'destination_id'  : destinationId
+          }
+      );
+
+      if(apiResponse.statusCode != 200){
+        Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+            syncType        : SyncType.modifiedFolder,
+            index           : index,
+            status          : SyncStatus.failed,
+            message         : apiResponse.message ?? 'Fail to call api move'
+        );
+        continue;
+      }
+
+      databaseService.updateRemoteByPath(
+        localPath       : folder.localPath,
+        type            : FileType.directory,
+        localModified   : 0,
+      );
+
     }
 
     Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
@@ -482,6 +618,10 @@ abstract class SyncService {
   }
 
   for (var file in modifiedFiles) {
+
+    if(file.toDelete == 1){
+      continue;
+    }
 
     print('wong');
 
@@ -499,10 +639,10 @@ abstract class SyncService {
 
     } catch (e) {
       Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType: SyncType.modifiedFile,
-          index: index,
-          status: SyncStatus.failed,
-          message: 'File is current opened'
+          syncType  : SyncType.modifiedFile,
+          index     : index,
+          status    : SyncStatus.failed,
+          message   : 'File is current opened'
       );
       continue;
     }
@@ -514,10 +654,10 @@ abstract class SyncService {
 
     if(apiResponse.statusCode != 200){
       Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType: SyncType.modifiedFile,
-          index: index,
-          status: SyncStatus.failed,
-          message: 'Fail to call api getChanges'
+          syncType  : SyncType.modifiedFile,
+          index     : index,
+          status    : SyncStatus.failed,
+          message   : 'Fail to call api getChanges'
       );
       continue;
     }
@@ -571,7 +711,7 @@ abstract class SyncService {
 
       databaseService.updateRemoteByPath(
           localPath: file.localPath,
-          mimetype: remoteFileInfo.mimetype,
+          type: FileType.file,
           localModified: 0
       );
     }
@@ -589,6 +729,38 @@ abstract class SyncService {
           message: 'Fail to call api getChanges'
       );
       continue;
+    } else {
+      //if rename succeed, need to call api getChanges again
+      apiResponse = await apiService(
+          serviceMethod: ServiceMethod.post,
+          path: '/api/getChanges'
+      );
+
+      if(apiResponse.statusCode != 200){
+        Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+            syncType  : SyncType.modifiedFile,
+            index     : index,
+            status    : SyncStatus.failed,
+            message   : 'Fail to call api getChanges'
+        );
+        continue;
+      }
+
+      change = changeFromJson(jsonEncode(apiResponse.data));
+
+      remoteFileInfo = null;
+
+      remoteFileInfo = change.files.firstWhereOrNull((element) => element.remotefileId == file.remoteId);
+
+      if(remoteFileInfo == null){
+        Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+            syncType: SyncType.modifiedFile,
+            index: index,
+            status: SyncStatus.failed,
+            message: 'Remote file not found'
+        );
+        continue;
+      }
     }
 
     change = changeFromJson(jsonEncode(apiResponse.data));
@@ -636,18 +808,18 @@ abstract class SyncService {
 
       if(apiResponse.statusCode != 200){
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-            syncType: SyncType.modifiedFile,
-            index: index,
-            status: SyncStatus.failed,
-            message: apiResponse.message ?? 'Fail to call api move'
+            syncType    : SyncType.modifiedFile,
+            index       : index,
+            status      : SyncStatus.failed,
+            message     : apiResponse.message ?? 'Fail to call api move'
         );
         continue;
       }
 
       databaseService.updateRemoteByPath(
-          localPath: file.localPath,
-          mimetype: remoteFileInfo.mimetype,
-          localModified: 0
+          localPath     : file.localPath,
+          type          : FileType.file,
+          localModified : 0
       );
     }
 
@@ -661,24 +833,24 @@ abstract class SyncService {
         Log.verbose('File size different, try update');
 
         Map<String, dynamic>? result = await FileService.upload(
-            filePath: file.localPath,
-            data: {
-              'parent_id': remoteFileInfo.parent.toString(),
-            }
+            filePath    : file.localPath,
+            data        : {
+                            'parent_id': remoteFileInfo.parent.toString(),
+                          }
         );
 
         if(result == null){
           Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-            syncType: SyncType.modifiedFile,
-            index: index,
-            status: SyncStatus.failed,
+            syncType    : SyncType.modifiedFile,
+            index       : index,
+            status      : SyncStatus.failed,
           );
           continue;
         }
 
         databaseService.updateRemoteByPath(
             localPath       : file.localPath,
-            mimetype        : result['mimetype'],
+            type            : FileType.file,
             localModified   : 0,
             remoteId        : result['id'],
             remoteTimeStamp : result['timestamp']
@@ -690,19 +862,19 @@ abstract class SyncService {
       Log.error(e.toString());
       Log.error(s.toString());
       Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-        syncType: SyncType.modifiedFile,
-        index: index,
-        status: SyncStatus.failed,
-        message: s.toString()
+        syncType    : SyncType.modifiedFile,
+        index       : index,
+        status      : SyncStatus.failed,
+        message     : s.toString()
       );
       continue;
     }
 
 
     Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-      syncType: SyncType.modifiedFile,
-      index: index,
-      status: SyncStatus.success,
+      syncType      : SyncType.modifiedFile,
+      index         : index,
+      status        : SyncStatus.success,
     );
   }
   }
@@ -748,7 +920,13 @@ abstract class SyncService {
 
       String localDirName = folder.localPath.split('\\').last;
       String localParent = folder.localPath.replaceLast(localDirName, '').removeTrailingSlash();
-      String path = localParent.replaceFirst(watchedDir, '').replaceBackSlashWithSlash().removeDuplicateSlash().removeLeadingSlash();
+
+      String path = localParent
+                      .replaceFirst(watchedDir, '')
+                      .replaceBackSlashWithSlash()
+                      .removeDuplicateSlash()
+                      .removeLeadingSlash();
+
       print(localDirName);
       print(localParent);
       print(path);
@@ -774,7 +952,7 @@ abstract class SyncService {
         
         databaseService.updateRemoteByPath(
             localPath       : folder.localPath,
-            mimetype        : 2,
+            type            : FileType.directory,
             localModified   : 0,
             remoteId        : HashIdService.instance.decode(data['data']['id']),
             //todo return timestamp
@@ -893,7 +1071,7 @@ abstract class SyncService {
 
       databaseService.updateRemoteByPath(
           localPath       : file.localPath,
-          mimetype        : result['mimetype'],
+          type            : FileType.directory,
           localModified   : 0,
           remoteId        : result['id'],
           remoteTimeStamp : result['timestamp']
@@ -977,7 +1155,7 @@ abstract class SyncService {
           serviceMethod: ServiceMethod.post,
           path: '/api/destroy',
           data: {
-            'file_id': HashIdService.instance.encode(folder.remoteId.toString()),
+            'path': folder.localPath.replaceFirst(watchedDir, 'files/').toString().replaceBackSlashWithSlash().toString().removeDuplicateSlash().removeTrailingSlash().removeLeadingSlash().replaceFirst('files/', '')
           }
       );
 

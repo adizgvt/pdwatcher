@@ -4,6 +4,11 @@ import '../utils/consts.dart';
 
 class Log {
 
+  static final List<String> _logMessages = [];
+
+  static List<String> get logMessages => _logMessages;
+
+
   static void info(String message) {
     final DateTime now = DateTime.now();
     print('\x1B[32m${now.toLocal().toString().substring(0,19)} INFO: $message\x1B[0m'.toLowerCase());
@@ -26,6 +31,7 @@ class Log {
   }
 
   static void _writeToFile(String message) {
+    _logMessages.add(message); // Add the message to the log list
     return;
     final DateTime now = DateTime.now();
     final String fileName = '${logDir}log_${now.toIso8601String().split('T')[0]}.txt';

@@ -1,3 +1,4 @@
+import 'package:pdwatcher/utils/consts.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/file_folder_info.dart';
@@ -18,8 +19,13 @@ class DatabaseService {
 
   // Initialize or retrieve the database instance
   Future<Database> get database async {
+
     if (_database != null) return _database!;
+
+    Log.info('Database not initialized');
+
     _database = await _initDatabase();
+
     return _database!;
   }
 
@@ -28,7 +34,9 @@ class DatabaseService {
 
     Log.info('Initializing Database......');
     // Get the database path
-    String path = join(await getDatabasesPath(), 'asdasssdad.db');
+    String path = '${dbDir}asdsadsad.db';
+
+    Log.info('Database path: $path');
 
     // Open the database, create tables if necessary
     return await openDatabase(
@@ -150,19 +158,34 @@ class DatabaseService {
         where: 'local_path = ?',
         whereArgs: [path],
       );
+
+      await db.update(
+        'files',
+        {
+          'local_path'      : destination,
+          'local_timestamp' : timestamp,
+          'local_modified'  : 1,
+        },
+        where: 'local_path = ?',
+        whereArgs: [destination],
+      );
+    }else{
+      await db.update(
+        'files',
+        {
+          'local_path'      : destination,
+          'local_timestamp' : timestamp,
+          'local_modified'  : 1,
+        },
+        where: 'local_path = ?',
+        whereArgs: [path],
+      );
     }
 
+
+
     // Step 3: Update the record with the new destination
-    await db.update(
-      'files',
-      {
-        'local_path'      : destination,
-        'local_timestamp' : timestamp,
-        'local_modified'  : 1,
-      },
-      where: 'local_path = ?',
-      whereArgs: [destination],
-    );
+
 
     print('patutnya jadi');
   }
@@ -392,7 +415,7 @@ class DatabaseService {
 
   Future updateRemoteByPath({
     required String localPath,
-    required int mimetype,
+    required String type,
     int? remoteId,
     int? remoteTimeStamp,
     int? localModified,
@@ -415,13 +438,13 @@ class DatabaseService {
     }
 
     var modifiedCount = await db.update(
-      mimetype == 2 ? 'folders' : 'files',
+      type == FileType.file ? 'files' : 'folders',
       toUpdate,
       where: 'local_path = ?',
       whereArgs: [localPath],
     );
 
-    Log.verbose('$localPath|$mimetype|$remoteId|$remoteTimeStamp');
+    Log.verbose('$localPath|$type|$remoteId|$remoteTimeStamp');
     Log.verbose('updateRemoteByPath | Updated Rows: $modifiedCount');
 
     return modifiedCount;
@@ -508,6 +531,15 @@ class DatabaseService {
   if(queue['event']['type'] == FileType.file){
 
     if(queue['event']['action'] == QueueAction.create){
+
+      // Check if the file is alphanumeric, has length 8, and contains no dot (no ext) for excel tmp file
+      String fileName = queue['event']['path'].toString().split('\\').last;
+
+      if(fileName.length == 8 && RegExp(r'^[a-zA-Z0-9]+$').hasMatch(fileName) && !fileName.contains('.')){
+        Log.info('file is excel');
+        return;
+      }
+
       db.createFile(
         path        : queue['event']['path'], 
         timestamp   : queue['timestamp']
@@ -534,7 +566,7 @@ class DatabaseService {
         path                : queue['event']['from'],
         destination         : queue['event']['to'],
         timestamp           : queue['timestamp'],
-        updateLocalModified : queue['update_modified']
+        updateLocalModified : queue['update_modified'] ?? true
       );
     }
 
@@ -566,7 +598,7 @@ class DatabaseService {
         path        : queue['event']['from'], 
         destination : queue['event']['to'],
         timestamp   : queue['timestamp'],
-        updateLocalModified: queue['update_modified']
+        updateLocalModified: queue['update_modified'] ?? true
       );
     }
 
