@@ -69,9 +69,7 @@ abstract class SyncService {
       if (!foldersInWatchedDirectory.any((entity) => entity.path == folder['local_path'])) {
         Log.info('Path: ${folder['local_path']}, Action: deleteFolder');
         databaseService.deleteFolder(
-          path: folder['local_path'],
-          forceDelete: true
-        );
+          path: folder['local_path'],);
       }
     }
 
@@ -80,9 +78,7 @@ abstract class SyncService {
       if (!foldersInWatchedDirectory.any((entity) => entity.path == file['local_path'])) {
         Log.info('Path: ${file['local_path']}, Action: deleteFile');
         databaseService.deleteFile(
-          path: file['local_path'],
-          forceDelete: true
-        );
+          path: file['local_path']);
       }
     }
 
