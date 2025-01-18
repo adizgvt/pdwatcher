@@ -308,7 +308,7 @@ abstract class SyncService {
             }
 
             //if local modified
-            if(localDBData[0].localModified == 1){
+            if(localDBData[0].localModified == 1  && await File(localDBData[0].localPath).length() != file.size){
 
               //rename local file
               String renamed = localDBData[0].localPath.toString().renameWithTimestamp();
@@ -377,7 +377,7 @@ abstract class SyncService {
           databaseService.deleteFile(path: toDelete[0].localPath, forceDelete: true);
         }
         else {
-          Directory(toDelete[0].localPath).deleteSync();
+          Directory(toDelete[0].localPath).deleteSync(recursive: true);
           databaseService.deleteFolder(path: toDelete[0].localPath, forceDelete: true);
         }
       } catch (e){
