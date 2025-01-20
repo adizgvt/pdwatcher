@@ -36,7 +36,7 @@ class User {
     tokenType: json["token_type"],
     storageId: json["storageId"],
     rootParentId: json["rootParentId"],
-    usage: json["usage"],
+    usage: json["usage"] == false ? 0 : json["usage"],
     quota: json["quota"],
   );
 
