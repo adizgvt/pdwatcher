@@ -831,9 +831,7 @@ abstract class SyncService {
 
         Map<String, dynamic>? result = await FileService.upload(
             filePath    : file.localPath,
-            data        : {
-                            'parent_id': remoteFileInfo.parent.toString(),
-                          }
+            parentId    : remoteFileInfo.parent,
         );
 
         if(result == null){
@@ -1049,9 +1047,7 @@ abstract class SyncService {
 
       Map<String, dynamic>? result = await FileService.upload(
           filePath: file.localPath,
-          data: {
-            'parent_id': parentId.toString()
-          }
+          parentId: parentId
       );
 
       print('result $result');

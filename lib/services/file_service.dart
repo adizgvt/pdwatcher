@@ -108,7 +108,7 @@ class FileService {
 
   static Future<Map<String, dynamic>?> upload({
     required String filePath,
-    required Map<String, String> data,
+    required int parentId,
   }) async {
     Log.verbose('uploading file');
     String domain = await LocalStorage.getServerUrl() ?? '';
@@ -128,7 +128,9 @@ class FileService {
     ChunkedUploader uploader = ChunkedUploader(dio);
 
     Response? response = await uploader.uploadUsingFilePath(
-      data: data,
+      data: {
+        'parent_id': parentId.toString()
+      },
       fileName: fileName,
       filePath: filePath,
       maxChunkSize: 100000,
@@ -157,176 +159,74 @@ class FileService {
 
   }
 
-  static String? copyToTempAndChunk({
+  static Future<Map<String, dynamic>?> uploadChunk({
     required String filePath,
-  }){
+    required int parentId,
+  }) async {
 
-    try {
+    String url = await LocalStorage.getServerUrl() ?? '';
 
-      //open file
-      var filex = File(filePath);
-      var raf = filex.openSync(mode: FileMode.read);
+    final String baseUrl  = '$url/api/upload';
+    const int chunkSize   = 1024 * 1024; // 1 MB
+    final String uuid     = const Uuid().v1();
 
-      //lock file
-      raf.lockSync(FileLock.shared);
-      Log.warning('!!! Locked   file $filePath');
+    final File file = File(filePath);
+    final int fileLength = await file.length();
+    final int totalChunks = (fileLength / chunkSize).ceil();
 
-      var uuid = const Uuid();
+    Map<String, dynamic>? lastResponse;
 
-      //-------------------------------------------------
-      int offset = 0;
-      int fileLength = raf.lengthSync();
-      int chunkSize = 1024 * 4 * 100;
-      String tempName = uuid.v1();
+    for (int i = 0; i < totalChunks; i++) {
+      final int start = i * chunkSize;
+      final int end = (start + chunkSize < fileLength) ? start + chunkSize : fileLength;
+      final List<int> chunkData = await file.openRead(start, end).toList().then((chunks) => chunks.expand((x) => x).toList());
 
-      while (offset < fileLength) {
-        int end = offset + chunkSize;
-        if (end > fileLength) {
-          end = fileLength;
-        }
+      lastResponse = await _uploadSingleChunk(baseUrl, chunkData, uuid, i, totalChunks, parentId);
 
-        raf.setPositionSync(offset);
-        List<int> chunk = raf.readSync(end - offset);
-
-        //create new temp dir for the file
-        final directory = Directory('$tempDir$tempName');
-        if (!directory.existsSync()) {
-          directory.createSync(recursive: true);
-        }
-
-        String chunkPath = '$tempDir$tempName\\$offset#$end#$tempName';
-
-        File file = File(chunkPath);
-        if (!file.existsSync()) {
-          file.createSync(recursive: false);
-        }
-        file.writeAsBytesSync(chunk);
-        Log.verbose('Wrote chunk for $filePath at $chunkPath');
-
-        offset = end;
+      if (lastResponse == null) {
+        print('Failed to upload chunk $i.');
+        return null;
       }
-
-      raf.unlockSync();
-      raf.closeSync();
-      Log.warning('!!! Unlocked file $filePath');
-      Log.info('!!! -----------------------------------------------------------');
-
-      return tempName;
-
-    } catch (e,s){
-      Log.error(e.toString());
-      Log.error(s.toString());
-      return null;
-    }
-    //-------------------------------------------------------------------------
-    /*String url = '$domain/api/upload';
-
-    int chunkSize = 1024 * 1024; // 1MB per chunk
-    File file = File(filePath);
-    int totalFileSize = await file.length();
-    int totalChunks = (totalFileSize / chunkSize).ceil();
-    print('totalFileSize $totalFileSize | totalChunk $totalChunks');
-
-    var uuid = const Uuid();
-    String uploadUuid = uuid.v1();
-
-    HttpClient client = HttpClient()
-      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-
-    var customClient = http.Client();
-
-    RandomAccessFile raf = await file.open();
-    int chunkIndex = 0;
-
-    Map<String, dynamic>? returnVal;
-
-    bool uploadSuccessful = true; // Flag to track upload status
-
-    while (chunkIndex < totalChunks) {
-      int startByte = chunkIndex * chunkSize;
-      int endByte = (startByte + chunkSize) > totalFileSize ? totalFileSize : (startByte + chunkSize);
-
-      await raf.setPosition(startByte);
-      List<int> chunkData = await raf.read(endByte - startByte);
-
-      var response = await sendChunkToServer(
-        url,
-        chunkData,
-        chunkIndex,
-        totalChunks,
-        uploadUuid,
-        data,
-        fileName,
-        client,
-        customClient,
-        token,
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print('Chunk $chunkIndex uploaded successfully');
-
-        try {
-          var responseString = jsonDecode(response.body)['data'];
-
-          Log.verbose(response.body);
-
-          returnVal = {
-            'id'            : responseString['fileid'],
-            'timestamp'     : responseString['mtime'],
-            'mimetype'      : responseString['mimetype'],
-          };
-        } catch (e) {
-          print('.......');
-        }
-      } else {
-        print('Chunk upload error ${response.statusCode} ${response.body}');
-        uploadSuccessful = false; // Mark upload as unsuccessful
-        break;
-      }
-
-      chunkIndex++;
     }
 
-    await raf.close();
-    customClient.close();
-
-    if (uploadSuccessful) {
-      return returnVal;
-    } else {
-      return null;
-    }*/
+    return lastResponse;
   }
 
-
-  static Future<http.Response> sendChunkToServer(
-      String url,
-      List<int> chunkData,
-      int chunkIndex,
-      int totalChunks,
-      String uploadUuid,
-      Map<String, String> data,
-      String fileName,
-      HttpClient client,
-      http.Client customClient,
-      String token
-      ) async {
-    var uri = Uri.parse(url);
-
-    // Prepare the request body with necessary headers
-    var request = http.MultipartRequest('POST', uri)
-      ..headers['Authorization']    = 'Bearer $token'
-      ..headers['Accept']           = 'application/json'
-
+  static Future<Map<String, dynamic>?> _uploadSingleChunk(
+      String url, List<int> chunkData, String uuid, int chunkIndex, int totalChunks, int parentId) async {
+    final request = http.MultipartRequest('POST', Uri.parse(url))
+      ..fields['dzuuid']            = uuid
       ..fields['dzchunkindex']      = chunkIndex.toString()
       ..fields['dztotalchunkcount'] = totalChunks.toString()
-      ..fields['dzuuid']            = uploadUuid
-      ..fields['parent_id']         = data['parent_id'] ?? ''
-      ..fields['fileName']          = fileName
-      ..files.add(http.MultipartFile.fromBytes('file', chunkData, filename: fileName));
+      ..fields['parent_id']         = parentId.toString()
+      ..files.add(http.MultipartFile.fromBytes('file', chunkData, filename: 'chunk_$chunkIndex'));
 
-    // Send the request using the custom HTTP client
-    var streamedResponse = await customClient.send(request);
-    return await http.Response.fromStream(streamedResponse);
+    final response      = await request.send();
+    final responseBody  = await http.Response.fromStream(response);
+
+    if (responseBody.body.isEmpty) {
+      return null;
+    }
+
+    print('Response Status Code: ${responseBody.statusCode}');
+    print('Response: ${responseBody.body}');
+
+    if (![200, 201].contains(responseBody.statusCode)) {
+      return null;
+    }
+
+    try {
+      final uploadResponse = jsonDecode(responseBody.body) as Map<String, dynamic>;
+
+      return {
+        'id': uploadResponse['fileid'],
+        'timestamp': uploadResponse['mtime'],
+        'mimetype': uploadResponse['mimetype'],
+      };
+    } catch (e) {
+      print('Failed to decode response: $e');
+      return null;
+    }
   }
 
 }
