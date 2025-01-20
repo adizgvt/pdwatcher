@@ -1128,7 +1128,7 @@ abstract class SyncService {
           }
       );
 
-      if(apiResponse.statusCode != 200){
+      if(![200,482].contains(apiResponse.statusCode)){
         Log.error(apiResponse.message.toString());
         continue;
       }
@@ -1152,7 +1152,7 @@ abstract class SyncService {
           }
       );
 
-      if(apiResponse.statusCode != 200){
+      if(![200,482].contains(apiResponse.statusCode)){
         Log.error(apiResponse.message.toString());
         continue;
       }

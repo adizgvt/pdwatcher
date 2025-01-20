@@ -92,7 +92,7 @@ class DatabaseService {
       'files', 
       {
         'local_path'        : path,
-        'local_timestamp'   : timestamp,
+        'local_timestamp'   : timestamp ~/ 1000,
         'local_modified'    : 0,
         'remote_id'         : null,
         'remote_timestamp'  : null
@@ -110,7 +110,7 @@ class DatabaseService {
       'folders', 
       {
         'local_path'        : path,
-        'local_timestamp'   : timestamp,
+        'local_timestamp'   : timestamp ~/ 1000,
         'local_modified'    : 0,
         'remote_id'         : null,
         'remote_timestamp'  : null
@@ -128,7 +128,7 @@ class DatabaseService {
     db.update(
       'files',
       {
-        'local_timestamp'   : timestamp,
+        'local_timestamp'   : timestamp ~/ 1000,
         'local_modified'    : 1,
       },
       where       : 'local_path = ?',
@@ -163,7 +163,7 @@ class DatabaseService {
         'files',
         {
           'local_path'      : destination,
-          'local_timestamp' : timestamp,
+          'local_timestamp' : timestamp ~/ 1000,
           'local_modified'  : 1,
         },
         where: 'local_path = ?',
@@ -174,7 +174,7 @@ class DatabaseService {
         'files',
         {
           'local_path'      : destination,
-          'local_timestamp' : timestamp,
+          'local_timestamp' : timestamp ~/ 1000,
           'local_modified'  : 1,
         },
         where: 'local_path = ?',
@@ -201,7 +201,7 @@ class DatabaseService {
       'folders',
       {
         'local_path'       : destination,
-        'local_timestamp'  : timestamp,
+        'local_timestamp'  : timestamp ~/ 1000,
         'local_modified'   : 1
       }, // The values to update
       where     : 'local_path = ?',
@@ -221,7 +221,7 @@ class DatabaseService {
 
     var field = {
       'local_path'        : destination,
-      'local_timestamp'   : timestamp,
+      'local_timestamp'   : timestamp ~/ 1000,
     };
 
     if(updateLocalModified){
@@ -248,7 +248,7 @@ class DatabaseService {
 
     var field = {
       'local_path'        : destination,
-      'local_timestamp'   : timestamp,
+      'local_timestamp'   : timestamp ~/ 1000,
     };
 
     if(updateLocalModified){
@@ -354,7 +354,11 @@ class DatabaseService {
 
     final db = await database;
 
-    return await db.query('files');
+    final data = await db.query('files');
+
+    print(data);
+
+    return data;
 
   }
 

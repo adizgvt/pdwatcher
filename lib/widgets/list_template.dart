@@ -22,7 +22,7 @@ listTemplate({
             SizedBox(width: 10,),
             Expanded(child: Text(localPath, style: FluentTheme.of(context).typography.caption)),
             SizedBox(width: 10,),
-            Expanded(child: Text(DateTime.fromMillisecondsSinceEpoch(int.parse(localTimestamp)).toString(), style: FluentTheme.of(context).typography.caption)),
+            Expanded(child: Text(localTimestamp, style: FluentTheme.of(context).typography.caption)),
             SizedBox(width: 10,),
             Expanded(child: Text(localModified == '1' ? 'MODIFIED' : 'UNTOUCHED', style: FluentTheme.of(context).typography.caption)),
             SizedBox(width: 10,),

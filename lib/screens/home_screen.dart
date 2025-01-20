@@ -326,13 +326,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     label: const Text('Test Button'),
                     onPressed: () async {
 
-                      //print(await databaseService.queryAllFiles());
+                      print(await databaseService.queryAllFiles());
 
-                      print(await databaseService.updateRemoteNullByPath(
-                          localPath: 'C:\\Users\\user\\Desktop\\watch\\New folder (2)\\wiring-r15-v3_convert_compress.pdf',
-                          mimetype: 0,
-                        )
-                      );
       
                     }
                 ),
