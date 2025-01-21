@@ -129,7 +129,9 @@ class FileService {
 
     Response? response = await uploader.uploadUsingFilePath(
       data: {
-        'parent_id': parentId.toString()
+        'parent_id': parentId.toString(),
+        'hostname': Platform.localHostname,
+        'uuid': await PlatformDeviceId.getDeviceId,
       },
       fileName: fileName,
       filePath: filePath,
@@ -191,6 +193,8 @@ class FileService {
       final request = http.MultipartRequest('POST', Uri.parse('$domain/api/upload'))
         ..headers['Authorization']      = 'Bearer $token'
         ..headers['Accept']             = 'application/json'
+        ..fields['hostname']            = Platform.localHostname
+        ..fields['uuid']                = await PlatformDeviceId.getDeviceId ?? ''
         ..fields['dzuuid']              = uuid
         ..fields['dzchunkindex']        = i.toString()
         ..fields['dztotalchunkcount']   = totalChunks.toString()

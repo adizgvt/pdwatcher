@@ -1082,7 +1082,7 @@ abstract class SyncService {
 
       databaseService.updateRemoteByPath(
           localPath       : file.localPath,
-          type            : FileType.directory,
+          type            : FileType.file,
           localModified   : 0,
           remoteId        : result['id'],
           remoteTimeStamp : result['timestamp']

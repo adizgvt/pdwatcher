@@ -325,14 +325,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     icon: const Icon(FluentIcons.play, color: Colors.successPrimaryColor,),
                     label: const Text('Test Button'),
                     onPressed: () async {
-
-                      Map<String, dynamic>? result = await FileService.uploadChunk(
-                        filePath    : "C:\\Users\\user\\Desktop\\watch\\lvl 1\\nota.txt",
-                        parentId    : 3
-                      );
-
-                      print('---');
-                      print(result);
       
                     }
                 ),
