@@ -327,7 +327,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: () async {
 
                       Map<String, dynamic>? result = await FileService.uploadChunk(
-                        filePath    : "C:\\Users\\user\\Downloads\\JetBrains.dotPeek.2024.3.3.web.exe",
+                        filePath    : "C:\\Users\\user\\Desktop\\watch\\lvl 1\\nota.txt",
                         parentId    : 3
                       );
 

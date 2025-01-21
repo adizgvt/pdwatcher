@@ -202,6 +202,7 @@ class FileService {
 
       print('chunk ${i+1}/$totalChunks');
       print('Response Status Code: ${responseBody.statusCode}');
+      print('Response Body : ${responseBody.body}');
 
       if (![200, 201].contains(responseBody.statusCode)) {
         print('Upload failed for chunk $i with status code: ${responseBody.statusCode}');
@@ -213,9 +214,9 @@ class FileService {
           final uploadResponse = jsonDecode(responseBody.body) as Map<String, dynamic>;
 
           lastResponse = {
-            'id': uploadResponse['fileid'],
-            'timestamp': uploadResponse['mtime'],
-            'mimetype': uploadResponse['mimetype'],
+            'id'        : uploadResponse['data']['fileid'],
+            'timestamp' : uploadResponse['data']['mtime'],
+            'mimetype'  : uploadResponse['data']['mimetype'],
           };
         } catch (e) {
           print('Failed to decode response: $e');
