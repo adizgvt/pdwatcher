@@ -200,12 +200,12 @@ abstract class SyncService {
 
               String folderName = localDBData[0].localPath.split('\\').last;
 
-              if(localDBData[0].localTimestamp >= file.mtime){
+              if(localDBData[0].localTimestamp >= file.mtime && localDBData[0].localModified == 1){
                 print('local folder named changed after remote');
                 //remote change after local
               }else{
                 final newD = await d.rename(localDBData[0].localPath.toString().replaceLast(folderName, file.name));
-                print('Folder renamed to: ${newD.path}');
+                print('Folder moved to: ${newD.path}');
               }
 
 
