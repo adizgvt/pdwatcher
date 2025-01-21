@@ -563,8 +563,6 @@ abstract class SyncService {
 
     print('localPath: $localPath | remoteFolderPath $remotePath');
 
-    bool targetNotFound = false;
-
     if(localPath != remotePath){
 
       int? destinationId = change.files.firstWhereOrNull((element) => element.path == localPath)?.remotefileId;
@@ -1163,7 +1161,7 @@ abstract class SyncService {
 
       Log.verbose('File ${folder.localPath} successfully deleted in server');
 
-      await databaseService.deleteFile(
+      await databaseService.deleteFolder(
           path: folder.localPath,
           forceDelete: true
       );
