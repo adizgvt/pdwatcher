@@ -571,7 +571,7 @@ abstract class SyncService {
 
     print('localPath: $localPath | remoteFolderPath $remotePath');
 
-    if(localPath != remotePath){
+    if(localPath != remotePath){//
 
       int? destinationId = change.files.firstWhereOrNull((element) => element.path == localPath)?.remotefileId;
 
