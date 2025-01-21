@@ -326,7 +326,18 @@ class _MyHomePageState extends State<MyHomePage> {
                     label: const Text('Test Button'),
                     onPressed: () async {
 
-                      print(await databaseService.queryAllFiles());
+                      try{
+                        Directory d = Directory('c:\\users\\user\\desktop\\watch\\some folder\\b\\a');
+
+                        String moveTo = 'c:\\users\\user\\desktop\\watch\\a-conflict';
+
+                        print(moveTo);
+
+                        d.renameSync(moveTo);
+                      } catch (e,s){
+                        Log.error(e.toString());
+                        Log.error(s.toString());
+                      }
 
       
                     }

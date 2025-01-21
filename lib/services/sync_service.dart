@@ -574,7 +574,15 @@ abstract class SyncService {
         destinationId ??= Provider.of<UserProvider>(context, listen: false).user?.rootParentId;
 
         try{
-          Directory(folder.localPath).renameSync('$watchedDir\\${folder.localPath.split('\\').last}-conflict-${DateTime.now().toString()}');
+          Directory d = Directory(folder.localPath);
+
+          final uuid = Uuid().v1();
+
+          String moveTo = '$watchedDir\\${folder.localPath.split('\\').last}-conflict-$uuid';
+
+          print(moveTo);
+
+          d.renameSync(moveTo);
         } catch (e){
           Log.error(e.toString());
           continue;
