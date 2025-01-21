@@ -351,6 +351,14 @@ abstract class SyncService {
 
     }
 
+    int? lastDelete = await LocalStorage.getLastDelete();
+
+    if(lastDelete != null && DateTime.now().millisecondsSinceEpoch <  lastDelete + 60000){ // 1min
+      return true;
+    }
+
+    LocalStorage.setLastDelete(DateTime.now().millisecondsSinceEpoch);
+
     for (FilesDeleted fileToDelete in change.filesDeleted){
 
       //search in files first
@@ -836,10 +844,10 @@ abstract class SyncService {
       print('localSize: $fileSize');
       print('remoteSize: ${remoteFileInfo.size}');
 
-      if(fileSize != remoteFileInfo.size){
+      if(fileSize != remoteFileInfo.size && remoteFileInfo.mtime == file.remoteTimestamp!){
         Log.verbose('File size different, try update');
 
-        Map<String, dynamic>? result = await FileService.upload(
+        Map<String, dynamic>? result = await FileService.uploadChunk(
             filePath    : file.localPath,
             parentId    : remoteFileInfo.parent,
         );
@@ -1055,7 +1063,7 @@ abstract class SyncService {
         continue;
       }
 
-      Map<String, dynamic>? result = await FileService.upload(
+      Map<String, dynamic>? result = await FileService.uploadChunk(
           filePath: file.localPath,
           parentId: parentId
       );

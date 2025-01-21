@@ -326,19 +326,13 @@ class _MyHomePageState extends State<MyHomePage> {
                     label: const Text('Test Button'),
                     onPressed: () async {
 
-                      try{
-                        Directory d = Directory('c:\\users\\user\\desktop\\watch\\some folder\\b\\a');
+                      Map<String, dynamic>? result = await FileService.uploadChunk(
+                        filePath    : "C:\\Users\\user\\Downloads\\JetBrains.dotPeek.2024.3.3.web.exe",
+                        parentId    : 3
+                      );
 
-                        String moveTo = 'c:\\users\\user\\desktop\\watch\\a-conflict';
-
-                        print(moveTo);
-
-                        d.renameSync(moveTo);
-                      } catch (e,s){
-                        Log.error(e.toString());
-                        Log.error(s.toString());
-                      }
-
+                      print('---');
+                      print(result);
       
                     }
                 ),

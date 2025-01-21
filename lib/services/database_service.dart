@@ -215,6 +215,10 @@ class DatabaseService {
     required int timestamp,
     bool updateLocalModified = false
   }) async {
+
+    if(path == destination){
+      return;
+    }
     final db = await database;
 
     print('moving $path $destination');

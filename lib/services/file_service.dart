@@ -159,19 +159,26 @@ class FileService {
 
   }
 
+  //-------------------------
+  //-------------------------
+  //-------------------------
+  //-------------------------
+  //-------------------------
+
   static Future<Map<String, dynamic>?> uploadChunk({
     required String filePath,
     required int parentId,
   }) async {
 
-    String url = await LocalStorage.getServerUrl() ?? '';
+    final domain    = await LocalStorage.getServerUrl() ?? '';
+    final token     = await LocalStorage.getToken() ?? '';
+    final fileName  = filePath.split('\\').last;
 
-    final String baseUrl  = '$url/api/upload';
-    const int chunkSize   = 1024 * 1024; // 1 MB
-    final String uuid     = const Uuid().v1();
+    const int chunkSize = 1024 * 1024;
+    final String uuid = const Uuid().v1();
 
-    final File file = File(filePath);
-    final int fileLength = await file.length();
+    final File file       = File(filePath);
+    final int fileLength  = await file.length();
     final int totalChunks = (fileLength / chunkSize).ceil();
 
     Map<String, dynamic>? lastResponse;
@@ -181,52 +188,45 @@ class FileService {
       final int end = (start + chunkSize < fileLength) ? start + chunkSize : fileLength;
       final List<int> chunkData = await file.openRead(start, end).toList().then((chunks) => chunks.expand((x) => x).toList());
 
-      lastResponse = await _uploadSingleChunk(baseUrl, chunkData, uuid, i, totalChunks, parentId);
+      final request = http.MultipartRequest('POST', Uri.parse('$domain/api/upload'))
+        ..headers['Authorization']      = 'Bearer $token'
+        ..headers['Accept']             = 'application/json'
+        ..fields['dzuuid']              = uuid
+        ..fields['dzchunkindex']        = i.toString()
+        ..fields['dztotalchunkcount']   = totalChunks.toString()
+        ..fields['parent_id']           = parentId.toString()
+        ..files.add(http.MultipartFile.fromBytes('file', chunkData, filename: fileName));
 
-      if (lastResponse == null) {
-        print('Failed to upload chunk $i.');
+      final response = await request.send();
+      final responseBody = await http.Response.fromStream(response);
+
+      print('chunk ${i+1}/$totalChunks');
+      print('Response Status Code: ${responseBody.statusCode}');
+
+      if (![200, 201].contains(responseBody.statusCode)) {
+        print('Upload failed for chunk $i with status code: ${responseBody.statusCode}');
         return null;
+      }
+
+      if (i == totalChunks - 1) {
+        try {
+          final uploadResponse = jsonDecode(responseBody.body) as Map<String, dynamic>;
+
+          lastResponse = {
+            'id': uploadResponse['fileid'],
+            'timestamp': uploadResponse['mtime'],
+            'mimetype': uploadResponse['mimetype'],
+          };
+        } catch (e) {
+          print('Failed to decode response: $e');
+          return null;
+        }
+      } else {
+        lastResponse = null;
       }
     }
 
-    return lastResponse;
-  }
-
-  static Future<Map<String, dynamic>?> _uploadSingleChunk(
-      String url, List<int> chunkData, String uuid, int chunkIndex, int totalChunks, int parentId) async {
-    final request = http.MultipartRequest('POST', Uri.parse(url))
-      ..fields['dzuuid']            = uuid
-      ..fields['dzchunkindex']      = chunkIndex.toString()
-      ..fields['dztotalchunkcount'] = totalChunks.toString()
-      ..fields['parent_id']         = parentId.toString()
-      ..files.add(http.MultipartFile.fromBytes('file', chunkData, filename: 'chunk_$chunkIndex'));
-
-    final response      = await request.send();
-    final responseBody  = await http.Response.fromStream(response);
-
-    if (responseBody.body.isEmpty) {
-      return null;
-    }
-
-    print('Response Status Code: ${responseBody.statusCode}');
-    print('Response: ${responseBody.body}');
-
-    if (![200, 201].contains(responseBody.statusCode)) {
-      return null;
-    }
-
-    try {
-      final uploadResponse = jsonDecode(responseBody.body) as Map<String, dynamic>;
-
-      return {
-        'id': uploadResponse['fileid'],
-        'timestamp': uploadResponse['mtime'],
-        'mimetype': uploadResponse['mimetype'],
-      };
-    } catch (e) {
-      print('Failed to decode response: $e');
-      return null;
-    }
+    return lastResponse; // Return the response of the last chunk
   }
 
 }
