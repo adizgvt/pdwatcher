@@ -563,20 +563,24 @@ abstract class SyncService {
 
     print('localPath: $localPath | remoteFolderPath $remotePath');
 
+    bool targetNotFound = false;
+
     if(localPath != remotePath){
 
       int? destinationId = change.files.firstWhereOrNull((element) => element.path == localPath)?.remotefileId;
 
-      destinationId ??= Provider.of<UserProvider>(context, listen: false).user?.rootParentId;
-
       if(destinationId == null){
-        Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-            syncType  : SyncType.modifiedFile,
-            index     : index,
-            status    : SyncStatus.failed,
-            message   : 'Unknown move destination'
-        );
-        continue;
+        //destination id == null means move target not found, either target deleted or move somewhere else
+
+        //set destination id to root parent id
+        destinationId ??= Provider.of<UserProvider>(context, listen: false).user?.rootParentId;
+
+        try{
+          Directory(folder.localPath).renameSync('$watchedDir\\${folder.localPath.split('\\').last}-conflict-${DateTime.now().toString()}');
+        } catch (e){
+          Log.error(e.toString());
+          continue;
+        }
       }
 
       apiResponse = await apiService(
