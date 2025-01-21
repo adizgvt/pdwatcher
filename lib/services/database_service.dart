@@ -421,6 +421,21 @@ class DatabaseService {
     );
   }
 
+  Future resetRemoteByPath({required String localPath, required String type}) async {
+
+    final db = await database;
+
+    return db.update(
+      type == FileType.file ? 'files' : 'folders',
+      {
+        'remote_id'         : null,
+        'remote_timestamp'  : null,
+      },
+      where: 'local_path = ?',
+      whereArgs: [localPath]
+    );
+  }
+
   Future updateRemoteByPath({
     required String localPath,
     required String type,

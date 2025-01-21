@@ -576,25 +576,36 @@ abstract class SyncService {
       int? destinationId = change.files.firstWhereOrNull((element) => element.path == localPath)?.remotefileId;
 
       if(destinationId == null){
-        //destination id == null means move target not found, either target deleted or move somewhere else
+        
+        //treat as new folder;
 
-        //set destination id to root parent id
-        destinationId ??= Provider.of<UserProvider>(context, listen: false).user?.rootParentId;
+        //remove remote id, timestamp for all files and folders in said directory;
+        final List<FileSystemEntity> children = await Directory(folder.localPath)
+                                                      .list(recursive: true, followLinks: false)
+                                                      .toList();
 
-        try{
-          Directory d = Directory(folder.localPath);
+        databaseService.resetRemoteByPath(
+          localPath: folder.localPath,
+          type: FileType.directory,
+        );
 
-          final uuid = Uuid().v1();
+        for (var child in children) {
+          if (child is Directory) {
+            await databaseService.resetRemoteByPath(
+                localPath: child.path,
+                type: FileType.directory,
+            );
+          }
 
-          String moveTo = '$watchedDir\\${folder.localPath.split('\\').last}-conflict-$uuid';
-
-          print(moveTo);
-
-          d.renameSync(moveTo);
-        } catch (e){
-          Log.error(e.toString());
-          continue;
+          if (child is File) {
+            await databaseService.resetRemoteByPath(
+                localPath: child.path,
+                type: FileType.file,
+            );
+          }
         }
+        //break loop and requery;
+        break;
       }
 
       apiResponse = await apiService(
