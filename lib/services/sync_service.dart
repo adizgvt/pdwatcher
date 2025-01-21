@@ -576,11 +576,23 @@ abstract class SyncService {
       int? destinationId = change.files.firstWhereOrNull((element) => element.path == localPath)?.remotefileId;
 
       if(destinationId == null){
-        
-        //treat as new folder;
+
+        String parentPath = localPath;
+        while (parentPath.isNotEmpty) {
+          parentPath = parentPath.split('/').sublist(0, parentPath.split('/').length - 1).join('/');
+
+          print('parentPath: $parentPath');
+
+          if (!change.files.any((element) => element.path == parentPath)) {
+            databaseService.updateRemoteNullByPath(
+              mimetype: 2, // Assuming 2 is the mimetype for folders
+              localPath: parentPath,
+            );
+          }
+        }
 
         //remove remote id, timestamp for all files and folders in said directory;
-        final List<FileSystemEntity> children = await Directory(folder.localPath)
+        final List<FileSystemEntity> children = await Directory(watchedDir + '\\' + parentPath.removeDuplicateSlash().replacelashWithBackSlash().removeDuplicateSlash())
                                                       .list(recursive: true, followLinks: false)
                                                       .toList();
 
