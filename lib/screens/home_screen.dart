@@ -21,6 +21,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../providers/sync_provider.dart';
 import '../providers/user_provider.dart';
+import '../services/drive_service.dart';
 import '../services/dummy_service.dart';
 import '../services/file_service.dart';
 import '../services/log_service.dart';
@@ -203,12 +204,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
     });
 
-    syncTimer = Timer.periodic(const Duration(seconds: 10), (Timer timer) async {
-
-      await SyncService.syncRemoteToLocal(context);
-      await SyncService.syncLocalToRemote(context);
-
-    });
+    // syncTimer = Timer.periodic(const Duration(seconds: 10), (Timer timer) async {
+    //
+    //   await SyncService.syncRemoteToLocal(context);
+    //   await SyncService.syncLocalToRemote(context);
+    //
+    // });
   }
 
   _queryFilesAndFolders() async {
@@ -325,7 +326,20 @@ class _MyHomePageState extends State<MyHomePage> {
                     icon: const Icon(FluentIcons.play, color: Colors.successPrimaryColor,),
                     label: const Text('Test Button'),
                     onPressed: () async {
-      
+
+                      final result = await DriveInfo.getDriveName();
+
+                      if(!result){
+
+                      }
+
+                      return;
+
+                      // final result = await FileService.uploadChunk(
+                      //     filePath: 'C:\\Users\\user\\Desktop\\watch\\yo\\yi\\Screenshot 2024-11-26 134729.png',
+                      //     //filePath: 'C:\\Users\\user\\Downloads\\JetBrains.dotPeek.2024.3.3.web.exe',
+                      //     parentId: 909
+                      // );
                     }
                 ),
               ],

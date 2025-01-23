@@ -1,8 +1,8 @@
-const baseDir = 'C:/pdwatcher/';
+String   baseDir = '';
 
-const tempDir = '${baseDir}temp/';
-const logDir  = '${baseDir}logs/';
-const dbDir   = '${baseDir}data/';
+String tempDir = '${baseDir}temp/';
+String logDir  = '${baseDir}logs/';
+String dbDir   = '${baseDir}data/';
 
 String initialUsername      = 'admin@pocketdata.com.my';
 String initialPassword      = '1';

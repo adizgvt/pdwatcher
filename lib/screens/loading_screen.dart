@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:pdwatcher/screens/home_screen.dart';
+import 'package:pdwatcher/services/drive_service.dart';
 import 'package:pdwatcher/services/log_service.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
@@ -26,7 +27,24 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp){
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+
+
+      final result = await DriveInfo.getDriveName();
+
+      if(!result){
+        showDialog<String>(
+          context: context,
+          builder: (context) => const ContentDialog(
+            title: Text('Error'),
+            content: Text(
+              'Fail to get Windows drive name',
+            ),
+          ),
+        );
+        return;
+      }
+
       Provider.of<UserProvider>(context, listen: false).autoLogin(context);
     });
     super.initState();

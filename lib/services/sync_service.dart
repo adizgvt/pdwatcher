@@ -45,10 +45,12 @@ abstract class SyncService {
       if (entity is Directory && !folders.any((folder) => folder['local_path'] == entity.path)) {
         Log.info('Path: ${entity.path}, Action: createFolder');
         databaseService.createFolder(
-          path: entity.path,
-          timestamp: stat.changed.millisecondsSinceEpoch
+          path       : entity.path,
+          timestamp  : stat.changed.millisecondsSinceEpoch
         );
-      } else if (entity is File && !files.any((file) => file['local_path'] == entity.path)) {
+      }
+
+      else if (entity is File && !files.any((file) => file['local_path'] == entity.path)) {
 
         String name = entity.path.split('\\').last;
 
@@ -58,8 +60,8 @@ abstract class SyncService {
 
         Log.info('Path: ${entity.path}, Action: createFile');
         databaseService.createFile(
-          path: entity.path,
-          timestamp: stat.changed.millisecondsSinceEpoch
+          path      : entity.path,
+          timestamp : stat.changed.millisecondsSinceEpoch
         );
       }
     }
@@ -67,18 +69,24 @@ abstract class SyncService {
     //check if there is any folder in db entry not exist in watched directory, then delete entry
     for (var folder in folders){
       if (!foldersInWatchedDirectory.any((entity) => entity.path == folder['local_path'])) {
+
         Log.info('Path: ${folder['local_path']}, Action: deleteFolder');
+
         databaseService.deleteFolder(
-          path: folder['local_path'],);
+          path: folder['local_path']
+        );
       }
     }
 
     //check if there is any file in db entry not exist in watched directory, then delete entry
     for (var file in files){
       if (!foldersInWatchedDirectory.any((entity) => entity.path == file['local_path'])) {
+
         Log.info('Path: ${file['local_path']}, Action: deleteFile');
+
         databaseService.deleteFile(
-          path: file['local_path']);
+          path: file['local_path']
+        );
       }
     }
 
@@ -134,6 +142,7 @@ abstract class SyncService {
       //check db if file already registered
       List<dynamic> localDBData = await databaseService.queryByRemoteId(remoteId: file.remotefileId, mimetype: file.mimetype);
 
+      return false;
       //generate local path
       String localPath = '$watchedDir\\${file.path}';
 
@@ -163,10 +172,10 @@ abstract class SyncService {
             await Future.delayed(const Duration(seconds: 3));
 
             await databaseService.updateRemoteByPath(
-                localPath: localPath,
-                type: FileType.directory,
-                remoteId: file.remotefileId,
-                remoteTimeStamp: file.mtime
+                localPath       : localPath,
+                type            : FileType.directory,
+                remoteId        : file.remotefileId,
+                remoteTimeStamp : file.mtime
             );
 
           }else{
@@ -185,10 +194,10 @@ abstract class SyncService {
               Provider.of<SyncProvider>(context, listen: false).updateUI();
 
               await databaseService.updateRemoteByPath(
-                  localPath: localPath,
-                  type: FileType.directory,
-                  remoteId: file.remotefileId,
-                  remoteTimeStamp: null
+                  localPath       : localPath,
+                  type            : FileType.directory,
+                  remoteId        : file.remotefileId,
+                  remoteTimeStamp : null
               );
 
             }else {
@@ -244,10 +253,10 @@ abstract class SyncService {
             await Future.delayed(const Duration(seconds: 3));
 
             await databaseService.updateRemoteByPath(
-                localPath: localPath,
-                type: FileType.file,
-                remoteId: file.remotefileId,
-                remoteTimeStamp: file.mtime
+                localPath       : localPath,
+                type            : FileType.file,
+                remoteId        : file.remotefileId,
+                remoteTimeStamp : file.mtime
             );
 
 
@@ -293,10 +302,10 @@ abstract class SyncService {
 
             } catch (e) {
               Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-                  syncType: SyncType.modifiedFile,
-                  index: index,
-                  status: SyncStatus.failed,
-                  message: 'File is current opened'
+                  syncType  : SyncType.modifiedFile,
+                  index     : index,
+                  status    : SyncStatus.failed,
+                  message   : 'File is current opened'
               );
               continue;
             }
@@ -318,8 +327,8 @@ abstract class SyncService {
               await Future.delayed(const Duration(seconds: 3));
 
               await databaseService.updateRemoteNullByPath(
-                  mimetype: file.mimetype,
-                  localPath: renamed
+                  mimetype  : file.mimetype,
+                  localPath : renamed
               );
             }
 
@@ -329,22 +338,22 @@ abstract class SyncService {
             await Future.delayed(const Duration(seconds: 3));
 
             await databaseService.updateRemoteByPath(
-              localPath: localPath,
-              type: FileType.file,
-              remoteId: file.remotefileId,
-              remoteTimeStamp: file.mtime,
+              localPath       : localPath,
+              type            : FileType.file,
+              remoteId        : file.remotefileId,
+              remoteTimeStamp : file.mtime,
             );
 
           }
 
         }
 
-        Provider.of<SyncProvider>(context, listen: false).change!.files[index].syncStatus = SyncStatus.success;
+        Provider.of<SyncProvider>(context, listen: false).change!.files[index].syncStatus   = SyncStatus.success;
         Provider.of<SyncProvider>(context, listen: false).change!.files[index].errorMessage = '';
         Provider.of<SyncProvider>(context, listen: false).updateUI();
 
       }catch(e){
-        Provider.of<SyncProvider>(context, listen: false).change!.files[index].syncStatus = SyncStatus.failed;
+        Provider.of<SyncProvider>(context, listen: false).change!.files[index].syncStatus   = SyncStatus.failed;
         Provider.of<SyncProvider>(context, listen: false).change!.files[index].errorMessage = e.toString();
         continue;
       }
@@ -363,13 +372,23 @@ abstract class SyncService {
 
       //search in files first
       bool isFile = true;
-      List<FileFolderInfo> toDelete = await databaseService.queryByRemoteId(remoteId: fileToDelete.fileid, mimetype: 0);
+
+      List<FileFolderInfo> toDelete = await databaseService.queryByRemoteId(
+          remoteId: fileToDelete.fileid,
+          mimetype: 0
+      );
 
       //if empty search in folders instead
       if(toDelete.isEmpty){
+
         isFile = false;
+
         Log.error('not found files, searching in folders');
-        toDelete = await databaseService.queryByRemoteId(remoteId: fileToDelete.fileid, mimetype: 2);
+
+        toDelete = await databaseService.queryByRemoteId(
+            remoteId: fileToDelete.fileid,
+            mimetype: 2
+        );
 
       }
 
@@ -938,9 +957,9 @@ abstract class SyncService {
       if (!exists) {
         int index = newFolders.indexOf(folder);
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType: SyncType.newFolder,
-          index: index,
-          status: SyncStatus.failed,
+          syncType  : SyncType.newFolder,
+          index     : index,
+          status    : SyncStatus.failed,
         );
         Log.warning('Folder ${folder.localPath} does not exist. Skipping');
         continue; // Skip to the next iteration
@@ -949,13 +968,13 @@ abstract class SyncService {
       int index = newFolders.indexOf(folder);
 
       Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-        syncType: SyncType.newFolder,
-        index: index,
-        status: SyncStatus.syncing,
+        syncType  : SyncType.newFolder,
+        index     : index,
+        status    : SyncStatus.syncing,
       );
 
       String localDirName = folder.localPath.split('\\').last;
-      String localParent = folder.localPath.replaceLast(localDirName, '').removeTrailingSlash();
+      String localParent  = folder.localPath.replaceLast(localDirName, '').removeTrailingSlash();
 
       String path = localParent
                       .replaceFirst(watchedDir, '')
@@ -977,9 +996,9 @@ abstract class SyncService {
       );
 
       Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-        syncType: SyncType.newFolder,
-        index: index,
-        status: apiResponse.statusCode == 200 ? SyncStatus.success : SyncStatus.failed,
+        syncType  : SyncType.newFolder,
+        index     : index,
+        status    : apiResponse.statusCode == 200 ? SyncStatus.success : SyncStatus.failed,
       );
 
       if(apiResponse.statusCode == 200) {
@@ -1009,10 +1028,10 @@ abstract class SyncService {
         String errorMessage = 'File ${file.localPath} does not exist. Skipping';
 
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType: SyncType.newFile,
-          index: index,
-          status: SyncStatus.failed,
-          message: errorMessage,
+          syncType  : SyncType.newFile,
+          index     : index,
+          status    : SyncStatus.failed,
+          message   : errorMessage,
         );
 
         Log.info(Provider.of<SyncProvider>(context, listen: false).newFiles[index].toString());
@@ -1027,10 +1046,10 @@ abstract class SyncService {
         String errorMessage = 'File ${file.localPath} is empty. Skipping';
 
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType: SyncType.newFile,
-          index: index,
-          status: SyncStatus.failed,
-          message: errorMessage,
+          syncType  : SyncType.newFile,
+          index     : index,
+          status    : SyncStatus.failed,
+          message   : errorMessage,
         );
 
         Log.warning(errorMessage);
@@ -1039,31 +1058,32 @@ abstract class SyncService {
       }
 
       Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-        syncType: SyncType.newFile,
-        index: index,
-        status: SyncStatus.syncing,
+        syncType  : SyncType.newFile,
+        index     : index,
+        status    : SyncStatus.syncing,
       );
       
       ApiResponse apiResponse = await apiService(
-          serviceMethod: ServiceMethod.post,
-          path: '/api/getChanges'
+          serviceMethod   : ServiceMethod.post,
+          path            : '/api/getChanges'
       );
       
       if(apiResponse.statusCode != 200){
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType: SyncType.newFile,
-          index: index,
-          status: SyncStatus.failed,
-          message: 'Fail to call api getChanges'
+          syncType  : SyncType.newFile,
+          index     : index,
+          status    : SyncStatus.failed,
+          message   : 'Fail to call api getChanges'
         );
         continue;
       }
       
       Change change = changeFromJson(jsonEncode(apiResponse.data));
 
-      String fileName = file.localPath.split('\\').last;
-      String localPath = file.localPath.replaceLast(fileName, '').removeTrailingSlash();
-      String path = localPath.replaceFirst(watchedDir, 'files/').replaceBackSlashWithSlash().removeDuplicateSlash();
+      String fileName   = file.localPath.split('\\').last;
+      String localPath  = file.localPath.replaceLast(fileName, '').removeTrailingSlash();
+      String path       = localPath.replaceFirst(watchedDir, 'files/').replaceBackSlashWithSlash().removeDuplicateSlash();
+
       print(fileName);
       print(localPath);
       print(path);
@@ -1074,14 +1094,14 @@ abstract class SyncService {
       //fallback
       parentId ??= change.files.firstWhereOrNull((element) => !element.path.replaceFirst('files/', '').contains('/'))?.parent;
 
-      parentId ??= Provider.of<UserProvider>(context, listen: false).user!.rootParentId;
+      //parentId ??= Provider.of<UserProvider>(context, listen: false).user!.rootParentId;
 
       if(parentId == null){
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType: SyncType.newFile,
-          index: index,
-          status: SyncStatus.failed,
-          message: 'Parent Folder not found'
+          syncType  : SyncType.newFile,
+          index     : index,
+          status    : SyncStatus.failed,
+          message   : 'Parent Folder not found'
         );
         continue;
       }
@@ -1095,10 +1115,10 @@ abstract class SyncService {
 
       if(result == null){
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType: SyncType.newFile,
-          index: index,
-          status: SyncStatus.failed,
-          message: 'API error'
+          syncType  : SyncType.newFile,
+          index     : index,
+          status    : SyncStatus.failed,
+          message   : 'API error'
         );
         continue;
       }
@@ -1140,9 +1160,9 @@ abstract class SyncService {
       // }
 
       Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-        syncType: SyncType.newFile,
-        index: index,
-        status: SyncStatus.success,
+        syncType  : SyncType.newFile,
+        index     : index,
+        status    : SyncStatus.success,
       );
 
     }
@@ -1151,6 +1171,8 @@ abstract class SyncService {
   }
 
   static _deleteFoldersAndFiles(context) async {
+
+    //this is actually remote -> local
 
     DatabaseService databaseService = DatabaseService();
 
@@ -1162,11 +1184,16 @@ abstract class SyncService {
     for (var file in filesToDelete) {
 
       ApiResponse apiResponse = await apiService(
-          serviceMethod: ServiceMethod.post,
-          path: '/api/destroy',
-          data: {
-            'path': file.localPath.replaceFirst(watchedDir, 'files/').toString().replaceBackSlashWithSlash().toString().removeDuplicateSlash().removeTrailingSlash().removeLeadingSlash().replaceFirst('files/', '')
-          }
+          serviceMethod : ServiceMethod.post,
+          path          : '/api/destroy',
+          data          : {
+                          'path': file.localPath.replaceFirst(watchedDir, 'files/').toString()
+                              .replaceBackSlashWithSlash().toString()
+                              .removeDuplicateSlash()
+                              .removeTrailingSlash()
+                              .removeLeadingSlash()
+                              .replaceFirst('files/', '')
+                          }
       );
 
       if(![200,482].contains(apiResponse.statusCode)){
@@ -1177,8 +1204,8 @@ abstract class SyncService {
       Log.verbose('File ${file.localPath} successfully deleted in server');
 
       await databaseService.deleteFile(
-          path: file.localPath,
-          forceDelete: true
+          path        : file.localPath,
+          forceDelete : true
       );
 
     }
@@ -1186,11 +1213,16 @@ abstract class SyncService {
     for (var folder in foldersToDelete) {
 
       ApiResponse apiResponse = await apiService(
-          serviceMethod: ServiceMethod.post,
-          path: '/api/destroy',
-          data: {
-            'path': folder.localPath.replaceFirst(watchedDir, 'files/').toString().replaceBackSlashWithSlash().toString().removeDuplicateSlash().removeTrailingSlash().removeLeadingSlash().replaceFirst('files/', '')
-          }
+          serviceMethod : ServiceMethod.post,
+          path          : '/api/destroy',
+          data          : {
+                            'path': folder.localPath.replaceFirst(watchedDir, 'files/').toString()
+                                .replaceBackSlashWithSlash().toString()
+                                .removeDuplicateSlash()
+                                .removeTrailingSlash()
+                                .removeLeadingSlash()
+                                .replaceFirst('files/', '')
+                          }
       );
 
       if(![200,482].contains(apiResponse.statusCode)){
@@ -1201,8 +1233,8 @@ abstract class SyncService {
       Log.verbose('File ${folder.localPath} successfully deleted in server');
 
       await databaseService.deleteFolder(
-          path: folder.localPath,
-          forceDelete: true
+          path        : folder.localPath,
+          forceDelete : true
       );
 
     }

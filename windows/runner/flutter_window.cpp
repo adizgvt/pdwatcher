@@ -2,6 +2,11 @@
 
 #include <optional>
 
+#include <windows.h>
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
+#include <flutter/encodable_value.h>
+
 #include "flutter/generated_plugin_registrant.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -25,6 +30,20 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+
+    auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+        flutter_controller_->engine()->messenger(), "com.example.driveinfo",
+        &flutter::StandardMethodCodec::GetInstance());
+
+    channel->SetMethodCallHandler([this](const flutter::MethodCall<flutter::EncodableValue>& call,
+                                         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() == "getDriveName") {
+            this->GetDriveName(std::move(result));
+        } else {
+            result->NotImplemented();
+        }
+    });
+
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -37,6 +56,19 @@ bool FlutterWindow::OnCreate() {
   flutter_controller_->ForceRedraw();
 
   return true;
+}
+
+// Implementation of GetDriveName
+void FlutterWindow::GetDriveName(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+    char driveName[MAX_PATH];
+    // Get the Windows directory (e.g., "C:\WINDOWS")
+    if (GetWindowsDirectoryA(driveName, MAX_PATH)) {
+        // Extract the drive letter (first 2 characters, e.g., "C:")
+        std::string driveLetter = std::string(driveName).substr(0, 2);
+        result->Success(driveLetter);
+    } else {
+        result->Error("UNAVAILABLE", "Failed to get drive name.");
+    }
 }
 
 void FlutterWindow::OnDestroy() {

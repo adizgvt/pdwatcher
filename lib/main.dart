@@ -6,19 +6,18 @@ import 'package:crypto/crypto.dart';
 import 'package:pdwatcher/cdc_chunker.dart';
 import 'package:pdwatcher/providers/file_provider.dart';
 import 'package:pdwatcher/providers/sync_provider.dart';
-import 'package:pdwatcher/providers/theme_provider.dart';
 import 'package:pdwatcher/providers/user_provider.dart';
 import 'package:pdwatcher/screens/loading_screen.dart';
-import 'package:pdwatcher/services/local_storage_service.dart';
 import 'package:pdwatcher/services/log_service.dart';
-import 'package:pdwatcher/services/sync_service.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
-import './screens/home_screen.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'dart:ui' as ui;
+import 'dart:ffi' hide Size;
+
+import 'package:path/path.dart';
+import 'package:sqlite3/open.dart';
 
 void main() async {
 
@@ -26,6 +25,7 @@ void main() async {
     Log.error("This application only runs on Windows.");
     exit(1);
   }
+
   await WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   //windowManager.setClosable(false);  //
@@ -114,7 +114,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => FileProvider()),
         //ChangeNotifierProvider(create: (_) => ThemeProvider() ,lazy: false,),
       ],
-      child: wrapFluent(child: LoadingScreen())
+      child: wrapFluent(child: const LoadingScreen())
     );
   }
 }
+

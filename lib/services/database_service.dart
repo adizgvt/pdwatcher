@@ -392,6 +392,8 @@ class DatabaseService {
 
     final db = await database;
 
+    return [].map((map) => FileFolderInfo.fromMap(map)).toList();
+
     var result = await db.query(
         mimetype == 2 ? 'folders' : 'files',
         where     : 'remote_id = ?',
