@@ -204,12 +204,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
     });
 
-    // syncTimer = Timer.periodic(const Duration(seconds: 10), (Timer timer) async {
-    //
-    //   await SyncService.syncRemoteToLocal(context);
-    //   await SyncService.syncLocalToRemote(context);
-    //
-    // });
+    syncTimer = Timer.periodic(const Duration(seconds: 10), (Timer timer) async {
+
+      await SyncService.syncRemoteToLocal(context);
+      await SyncService.syncLocalToRemote(context);
+
+    });
   }
 
   _queryFilesAndFolders() async {
