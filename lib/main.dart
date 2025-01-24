@@ -21,6 +21,17 @@ import 'package:sqlite3/open.dart';
 
 void main() async {
 
+  if (Platform.isWindows) {
+    Process.run('cmd.exe', ['/c', 'echo Hello, Flutter Desktop!']).then((result) {
+      print('Output: ${result.stdout}');
+      print('Error: ${result.stderr}');
+    }).catchError((e) {
+      print('Failed to run command: $e');
+    });
+  } else {
+    print('This example only works on Windows.');
+  }
+
   if (!Platform.isWindows) {
     Log.error("This application only runs on Windows.");
     exit(1);

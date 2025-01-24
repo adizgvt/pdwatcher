@@ -102,25 +102,26 @@ abstract class SyncService {
     }
 
     //check internet connection
-    final connectivityResult = await (Connectivity().checkConnectivity());
-
-    switch (connectivityResult) {
-      case ConnectivityResult.none:
-        Log.error('No internet connection. Sync operation aborted');
-        Provider.of<SyncProvider>(context, listen: false).setOffline();
-        return false;
-      case ConnectivityResult.ethernet:
-      case ConnectivityResult.wifi:
-      case ConnectivityResult.vpn:
-        Log.info('Internet OK');
-        Provider.of<SyncProvider>(context, listen: false).setOnline();
-      default:
-        Provider.of<SyncProvider>(context, listen: false).setOffline();
-        Log.error('Unknown connection status');
-        return false;
-    }
+    // final connectivityResult = await (Connectivity().checkConnectivity());
+    //
+    // switch (connectivityResult) {
+    //   case ConnectivityResult.none:
+    //     Log.error('No internet connection. Sync operation aborted');
+    //     Provider.of<SyncProvider>(context, listen: false).setOffline();
+    //     return false;
+    //   case ConnectivityResult.ethernet:
+    //   case ConnectivityResult.wifi:
+    //   case ConnectivityResult.vpn:
+    //     Log.info('Internet OK');
+    //     Provider.of<SyncProvider>(context, listen: false).setOnline();
+    //   default:
+    //     Provider.of<SyncProvider>(context, listen: false).setOffline();
+    //     Log.error('Unknown connection status');
+    //     return false;
+    // }
 
     await Provider.of<SyncProvider>(context, listen: false).getChanges(context);
+
 
     if(Provider.of<SyncProvider>(context, listen: false).change == null){
       Log.error('Error calling api getChanges');
@@ -142,7 +143,6 @@ abstract class SyncService {
       //check db if file already registered
       List<dynamic> localDBData = await databaseService.queryByRemoteId(remoteId: file.remotefileId, mimetype: file.mimetype);
 
-      return false;
       //generate local path
       String localPath = '$watchedDir\\${file.path}';
 
@@ -360,6 +360,8 @@ abstract class SyncService {
 
     }
 
+    print('after return');
+
     int? lastDelete = await LocalStorage.getLastDelete();
 
     if(lastDelete != null && DateTime.now().millisecondsSinceEpoch <  lastDelete + 60000){ // 1min
@@ -426,22 +428,22 @@ abstract class SyncService {
     }
 
     //check internet connection
-    final connectivityResult = await (Connectivity().checkConnectivity());
-
-    switch (connectivityResult) {
-      case ConnectivityResult.none:
-        Log.error('No internet connection. Sync operation aborted');
-        Provider.of<SyncProvider>(context, listen: false).setOffline();
-        return;
-      case ConnectivityResult.ethernet:
-      case ConnectivityResult.wifi:
-      case ConnectivityResult.vpn:
-        Log.info('Internet OK');
-        Provider.of<SyncProvider>(context, listen: false).setOnline();
-      default:  
-        Provider.of<SyncProvider>(context, listen: false).setOffline();
-        Log.error('Unknown connection status');
-    }
+    // final connectivityResult = await (Connectivity().checkConnectivity());
+    //
+    // switch (connectivityResult) {
+    //   case ConnectivityResult.none:
+    //     Log.error('No internet connection. Sync operation aborted');
+    //     Provider.of<SyncProvider>(context, listen: false).setOffline();
+    //     return;
+    //   case ConnectivityResult.ethernet:
+    //   case ConnectivityResult.wifi:
+    //   case ConnectivityResult.vpn:
+    //     Log.info('Internet OK');
+    //     Provider.of<SyncProvider>(context, listen: false).setOnline();
+    //   default:
+    //     Provider.of<SyncProvider>(context, listen: false).setOffline();
+    //     Log.error('Unknown connection status');
+    // }
     
 
     Provider.of<SyncProvider>(context, listen: false).isSyncing = true;
@@ -611,7 +613,7 @@ abstract class SyncService {
         }
 
         //remove remote id, timestamp for all files and folders in said directory;
-        final List<FileSystemEntity> children = await Directory(watchedDir + '\\' + parentPath.removeDuplicateSlash().replacelashWithBackSlash().removeDuplicateSlash())
+        final List<FileSystemEntity> children = await Directory('$watchedDir\\${parentPath.removeDuplicateSlash().replacelashWithBackSlash().removeDuplicateSlash()}')
                                                       .list(recursive: true, followLinks: false)
                                                       .toList();
 
@@ -889,7 +891,7 @@ abstract class SyncService {
       if(fileSize != remoteFileInfo.size && remoteFileInfo.mtime == file.remoteTimestamp!){
         Log.verbose('File size different, try update');
 
-        Map<String, dynamic>? result = await FileService.uploadChunk(
+        Map<String, dynamic>? result = await FileService.upload(
             filePath    : file.localPath,
             parentId    : remoteFileInfo.parent,
         );
@@ -1106,7 +1108,7 @@ abstract class SyncService {
         continue;
       }
 
-      Map<String, dynamic>? result = await FileService.uploadChunk(
+      Map<String, dynamic>? result = await FileService.upload(
           filePath: file.localPath,
           parentId: parentId
       );

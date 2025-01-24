@@ -110,6 +110,7 @@ class SyncProvider extends ChangeNotifier {
 
     change = null;
 
+
     ApiResponse apiResponse = await apiService(
         data: {
           //'Time': DateTime.now().millisecondsSinceEpoch~/1000,
@@ -133,19 +134,6 @@ class SyncProvider extends ChangeNotifier {
         change!.files.forEach((file) {
           file.path = file.path.replaceFirst('files/', '').replaceAll('/', '\\');
         });
-
-        // Log.info('CHANGED');
-        // for(var file in change!.files){
-        //   Log.verbose(jsonEncode(file));
-        // }
-        // Log.info('DELETED');
-        // for(var file in change!.filesDeleted){
-        //   Log.verbose(jsonEncode(file));
-        // }
-        // Log.info('SHARED');
-        // for(var file in change!.shareFile){
-        //   Log.verbose(jsonEncode(file));
-        // }
 
     }
     else {

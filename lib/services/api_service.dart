@@ -21,13 +21,14 @@ Future<ApiResponse> apiService({
 
   if(data != null){
     data.addAll({
-      'hostname': Platform.localHostname,
-      'uuid': await PlatformDeviceId.getDeviceId,
+      //todo flashes CMD change
+      'hostname': 'asd',
+      'uuid': await 'asd',
     });
   }else{
     data = {
-      'hostname': Platform.localHostname,
-      'uuid': await PlatformDeviceId.getDeviceId,
+      'hostname': 'asd',
+      'uuid': 'asd',
     };
   }
 

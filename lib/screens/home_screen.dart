@@ -327,13 +327,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     label: const Text('Test Button'),
                     onPressed: () async {
 
-                      final result = await DriveInfo.getDriveName();
+                      DatabaseService databaseService = DatabaseService();
 
-                      if(!result){
-
-                      }
-
-                      return;
+                      databaseService.queryByRemoteId(remoteId: 1, mimetype: 2);
 
                       // final result = await FileService.uploadChunk(
                       //     filePath: 'C:\\Users\\user\\Desktop\\watch\\yo\\yi\\Screenshot 2024-11-26 134729.png',

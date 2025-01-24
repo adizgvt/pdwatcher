@@ -110,6 +110,15 @@ class FileService {
     required String filePath,
     required int parentId,
   }) async {
+
+    return uploadSingleFile(filePath: filePath, parentId: parentId);
+    //return uploadChunk(filePath: filePath, parentId: parentId);
+  }
+
+  static Future<Map<String, dynamic>?> uploadSingleFile({
+    required String filePath,
+    required int parentId,
+  }) async {
     Log.verbose('uploading file');
     String domain = await LocalStorage.getServerUrl() ?? '';
     String token = await LocalStorage.getToken() ?? '';
