@@ -16,21 +16,7 @@ import 'package:window_manager/window_manager.dart';
 import 'dart:ui' as ui;
 import 'dart:ffi' hide Size;
 
-import 'package:path/path.dart';
-import 'package:sqlite3/open.dart';
-
 void main() async {
-
-  if (Platform.isWindows) {
-    Process.run('cmd.exe', ['/c', 'echo Hello, Flutter Desktop!']).then((result) {
-      print('Output: ${result.stdout}');
-      print('Error: ${result.stderr}');
-    }).catchError((e) {
-      print('Failed to run command: $e');
-    });
-  } else {
-    print('This example only works on Windows.');
-  }
 
   if (!Platform.isWindows) {
     Log.error("This application only runs on Windows.");
@@ -40,7 +26,14 @@ void main() async {
   await WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   //windowManager.setClosable(false);  //
-  windowManager.setMinimumSize(Size(800, 600));
+  windowManager.setAsFrameless();
+  windowManager.setTitle('POCKET DATA SYNC DESKTOP CLIENT');
+  windowManager.setAlignment(Alignment.center);
+  windowManager.setResizable(false);
+  windowManager.setSize(const Size(800, 600));
+  windowManager.setMinimumSize(const Size(800, 600));
+  windowManager.setMaximumSize(const Size(800, 600));
+  windowManager.setSkipTaskbar(false);
 
   runApp(MyApp());
 

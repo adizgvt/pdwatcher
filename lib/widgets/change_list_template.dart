@@ -30,13 +30,29 @@ changeListTemplate(context, {required FileChangeEnum changeType}){
             return Container(
               margin: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
               child: Card(
-                child: Text('''
-              id      : ${data[index].id}
-              fileid : ${data[index].fileid}
-              storage : ${data[index].storage}
-              '''.replaceAll(' ', '')
-                  ,style: FluentTheme.of(context).typography.caption,
-                ),
+                child: Table(
+                  columnWidths: {0: FlexColumnWidth(1), 1: FlexColumnWidth(2)},
+                  children: [
+                    TableRow(
+                      children: [
+                        Text('id', style: TextStyle(fontSize: 10)),
+                        Text(': ${data[index].id}', style: TextStyle(fontSize: 10)),
+                      ],
+                    ),
+                    TableRow(
+                      children: [
+                        Text('file_id', style: TextStyle(fontSize: 10)),
+                        Text(': ${data[index].fileid}', style: TextStyle(fontSize: 10)),
+                      ],
+                    ),
+                    TableRow(
+                      children: [
+                        Text('storage', style: TextStyle(fontSize: 10)),
+                        Text(': ${data[index].storage}', style: TextStyle(fontSize: 10)),
+                      ],
+                    ),
+                  ]
+                )
               ),
             );
           }

@@ -9,6 +9,8 @@ abstract class LocalStorage {
   static const String _SERVER_URL_KEY        = 'serverUrl';
   static const String _TOKEN_KEY             = 'token';
   static const String _LAST_DELETE           = 'last+delete';
+  static const String _LOCAL_HOSTNAME        = 'localHostname';
+  static const String _DEVICE_ID             = 'deviceId';
 
   static Future<void> setWatchedDirectory(String directory) async {
 
@@ -70,6 +72,26 @@ abstract class LocalStorage {
   static Future<int?> getLastDelete() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(_LAST_DELETE);
+  }
+
+  static Future<void> setLocalHostname(String hostname) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_LOCAL_HOSTNAME, hostname);
+  }
+
+  static Future<String?> getLocalHostname() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_LOCAL_HOSTNAME);
+  }
+
+  static Future<void> setDeviceId(String deviceId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_DEVICE_ID, deviceId);
+  }
+
+  static Future<String?> getDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_DEVICE_ID);
   }
 
   static Future<void> clearData() async {

@@ -31,7 +31,13 @@ class Log {
   }
 
   static void _writeToFile(String message) {
-    _logMessages.add(message); // Add the message to the log list
+
+    _logMessages.add(message);
+
+    if (_logMessages.length > 1000) {
+      _logMessages.removeRange(0, _logMessages.length - 1000);
+    }
+
     return;
     final DateTime now = DateTime.now();
     final String fileName = '${logDir}log_${now.toIso8601String().split('T')[0]}.txt';

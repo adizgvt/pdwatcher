@@ -3,17 +3,12 @@ import 'dart:io';
 import 'package:filepicker_windows/filepicker_windows.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:loader_overlay/loader_overlay.dart';
-import 'package:pdwatcher/models/User.dart';
-import 'package:pdwatcher/models/api_response.dart';
-import 'package:pdwatcher/screens/home_screen.dart';
 import 'package:pdwatcher/services/local_storage_service.dart';
 import 'package:pdwatcher/utils/consts.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
-import '../services/api_service.dart';
 import '../services/log_service.dart';
-import '../utils/enums.dart';
 import '../widgets/notification.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -27,7 +22,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
 
-  TextEditingController emailController  = TextEditingController(text: '');
+  TextEditingController emailController     = TextEditingController(text: '');
   TextEditingController passwordController  = TextEditingController(text: '');
   TextEditingController serverUrlController = TextEditingController(text: '');
   TextEditingController syncDirectory       = TextEditingController(text: '');
@@ -44,17 +39,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     //new full  => full detail
     if(widget.newLogin){
-      emailController.text   = initialUsername;
+
+      //Provider.of<UserProvider>(context, listen: false).user = null;
+
+      emailController.text      = initialUsername;
       passwordController.text   = initialPassword;
       serverUrlController.text  = initialServerurl;
       syncDirectory.text        = initialSyncDirectory;
     }
     //else just username password
     else {
-      emailController.text   = await LocalStorage.getUsername() ?? '';
-      passwordController.text   = await LocalStorage.getPassword() ?? '';
-      serverUrlController.text  = await LocalStorage.getServerUrl() ?? '';
-      syncDirectory.text        = await LocalStorage.getWatchedDirectory() ?? '';
+      emailController.text      = await LocalStorage.getUsername()          ?? '';
+      passwordController.text   = await LocalStorage.getPassword()          ?? '';
+      serverUrlController.text  = await LocalStorage.getServerUrl()         ?? '';
+      syncDirectory.text        = await LocalStorage.getWatchedDirectory()  ?? '';
     }
   }
   
@@ -66,10 +64,10 @@ class _LoginScreenState extends State<LoginScreen> {
           content: IgnorePointer(
             ignoring: absorb,
             child: Card(
-              margin: EdgeInsets.symmetric(vertical: 30),
-              padding: EdgeInsets.symmetric(horizontal: 30),
+              margin: const EdgeInsets.symmetric(vertical: 15),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
               child: Container(
-                width: 600,
+                width: 500,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -78,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(appLogo, height: 40,),
+                        Image.asset(appLogo, height: 20,),
                       ],
                     ),
                     SizedBox(height: 20,),
@@ -136,7 +134,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: ButtonStyle(
                             backgroundColor: WidgetStateProperty.resolveWith<Color>((states) => Colors.black),
                           ),
-                          child: Text('Select'),
+                          child: Row(
+                            children: [
+                              Icon(FluentIcons.hard_drive),
+                              SizedBox(width: 10,),
+                              Text('SYNC DIRECTORY', style: TextStyle(fontSize: 12),)
+                            ],
+                          ),
                           onPressed: () async {
 
                             final file = DirectoryPicker()
@@ -149,24 +153,24 @@ class _LoginScreenState extends State<LoginScreen> {
                               await NotificationBar.error(context, message: 'No directory selected');
                               return;
                             }
-        
+
                             Log.info('Selected directory: ${result.path}');
                             syncDirectory.text = result.path;
                             setState(() {});
 
-        
-        
-        
+
+
+
                           },
                         )
                       ],
                     ),
-                    SizedBox(height: 50,),
+                    SizedBox(height: 20,),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         FilledButton(
-                            child: Text('Login'),
+                            child: Text('LOGIN'),
                             onPressed: () async {
 
                               if(emailController.text.isEmpty || passwordController.text.isEmpty){

@@ -1,7 +1,7 @@
 import 'dart:async';
+import 'package:custom_platform_device_id/platform_device_id.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:pdwatcher/models/file_folder_info.dart';
 import 'package:pdwatcher/screens/login_screen.dart';
 import 'package:pdwatcher/utils/enums.dart';
 import 'package:pdwatcher/services/database_service.dart';
@@ -18,11 +18,10 @@ import 'package:pdwatcher/widgets/sync_list_template.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../providers/sync_provider.dart';
 import '../providers/user_provider.dart';
-import '../services/drive_service.dart';
-import '../services/dummy_service.dart';
 import '../services/file_service.dart';
 import '../services/log_service.dart';
 import '../widgets/action_button.dart';
@@ -34,7 +33,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  int topIndex = 0;
+  int topIndex = 3;
 
   PaneDisplayMode displayMode = PaneDisplayMode.open;
 
@@ -190,10 +189,7 @@ class _MyHomePageState extends State<MyHomePage> {
             db: databaseService,
           );
         }
-        // copyToTempAndChunk(
-        //   filePath: actionQueue.first['event']['path'],
-        //   tempDir: 'C:\\Users\\pd\\Desktop\\tempchunk\\'
-        // );
+
         actionQueue.removeAt(0);
         files       = await databaseService.queryAllFiles();
         folders     = await databaseService.queryAllFolders();
@@ -246,110 +242,159 @@ class _MyHomePageState extends State<MyHomePage> {
       child: NavigationView(
         appBar: NavigationAppBar(
           automaticallyImplyLeading: false,
-          actions: Padding(
-            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if(Provider.of<SyncProvider>(context).isSyncing)
-                SpinningIcon(icon: FontAwesomeIcons.arrowsRotate, color: Colors.blue),
-                SizedBox(width: 20,),
-                Button(
-                  style: ButtonStyle(
-                    backgroundColor: ButtonState.all(Provider.of<SyncProvider>(context).isOffline ? Colors.orange : Colors.green),
+          height: 60,
+          title: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                        child: Container(
+                          color: Colors.grey[20],
+                          height: 30,
+                        ),
+                        onPanStart: (details) {
+                          windowManager.startDragging();
+                        }
+                    ),
                   ),
-                  onPressed: (){},
-                  child: Row(
-                    children: [Text(Provider.of<SyncProvider>(context).isOffline ? 'Offline' : 'Online', style: TextStyle(color: Colors.white),)
-                    ],
+                  Tooltip(
+                    message: 'Log out',
+                    child: IconButton(
+                      icon: Icon(FluentIcons.close_pane, color: Colors.red,),
+                      onPressed: () async {
+
+                        await showDialog<String>(
+                            context: context,
+                            builder: (context) => ContentDialog(
+                              title: const Text('End Sync'),
+                              content: const Text(
+                                'Logging out will stop file synchronization. Would you like to continue?',
+                              ),
+                              actions: [
+                                Button(
+                                  child: const Text('Logout'),
+                                  onPressed: () async {
+                                    await LocalStorage.clearData();
+                                    Navigator.pushAndRemoveUntil(context, FluentPageRoute(builder: (_) => const LoginScreen(newLogin: true)), (route) => false);
+
+                                    // Delete file here
+                                  },
+                                ),
+                                FilledButton(
+                                  child: const Text('Cancel'),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              ],
+                            ),
+                          );
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          title: Padding(
-            padding: EdgeInsets.all(10),
-            child: CommandBar(
-              overflowBehavior: CommandBarOverflowBehavior.noWrap,
-              primaryItems: [
-                CommandBarButton(
-                    icon: Icon(FluentIcons.sync, color: Colors.blue,),
-                    label: const Text('Sync Local Folder With Local Db'),
-                    onPressed: () async {
-      
-                      _gotoTab(0);
-      
-                      await SyncService.syncLocalFileFolderWithLocalDb().then((val){
-                        _queryFilesAndFolders();
-                      });
-      
-      
-                    }
-                ),
-                CommandBarButton(
-                    icon: const Icon(FluentIcons.delete, color: Colors.errorPrimaryColor,),
-                    label: const Text('Delete Data'),
-                    onPressed: (){
-      
-                      _gotoTab(0);
-      
-                      databaseService.deleteAll();
-                      _queryFilesAndFolders();
-      
-                    }
-                ),
-                CommandBarButton(
-                    icon: Icon(FluentIcons.cloud_upload, color: Colors.blue,),
-                    label: const Text('Sync Local To Remote'),
-                    onPressed: (){
-      
-                      _gotoTab(1);
-      
-                      SyncService.syncLocalToRemote(context);
-                      _queryFilesAndFolders();
-      
-                    }
-                ),
-                CommandBarButton(
-                    icon: const Icon(FluentIcons.cloud_download, color: Colors.successPrimaryColor,),
-                    label: const Text('Sync Remote To Local'),
-                    onPressed: (){
-      
-                      _gotoTab(2);
+                  SizedBox(width: 10,),
+                  Tooltip(
+                    message: 'Minimize',
+                    child: IconButton(
+                      icon: const Icon(FluentIcons.chrome_minimize, size: 12.0),
+                      onPressed: () {
+                        windowManager.minimize();
+                        //windowManager.hide();
+                      },
+                    ),
+                  ),
 
-                      SyncService.syncRemoteToLocal(context);
-                      _queryFilesAndFolders();
-      
-                    }
+                ],
+              ),
+              Padding(
+                padding: EdgeInsets.zero,
+                child: CommandBar(
+                  overflowBehavior: CommandBarOverflowBehavior.noWrap,
+                  primaryItems: [
+                    CommandBarButton(
+                        icon: Icon(FluentIcons.sync, color: Colors.blue,),
+                        label: Text('Sync Local Folder With Local Db' ,style: FluentTheme.of(context).typography.caption,),
+                        onPressed: () async {
+
+                          _gotoTab(0);
+
+                          await SyncService.syncLocalFileFolderWithLocalDb().then((val){
+                            _queryFilesAndFolders();
+                          });
+
+
+                        }
+                    ),
+                    CommandBarButton(
+                        icon: const Icon(FluentIcons.delete, color: Colors.errorPrimaryColor,),
+                        label: Text('Delete Data' ,style: FluentTheme.of(context).typography.caption,),
+                        onPressed: (){
+
+                          _gotoTab(0);
+
+                          databaseService.deleteAll();
+                          _queryFilesAndFolders();
+
+                        }
+                    ),
+                    CommandBarButton(
+                        icon: Icon(FluentIcons.cloud_upload, color: Colors.blue,),
+                        label: Text('Sync Local To Remote' ,style: FluentTheme.of(context).typography.caption,),
+                        onPressed: (){
+
+                          _gotoTab(1);
+
+                          SyncService.syncLocalToRemote(context);
+                          _queryFilesAndFolders();
+
+                        }
+                    ),
+                    CommandBarButton(
+                        icon: const Icon(FluentIcons.cloud_download, color: Colors.successPrimaryColor,),
+                        label: Text('Sync Remote To Local' ,style: FluentTheme.of(context).typography.caption,),
+                        onPressed: (){
+
+                          _gotoTab(2);
+
+                          SyncService.syncRemoteToLocal(context);
+                          _queryFilesAndFolders();
+
+                        }
+                    ),
+                    CommandBarButton(
+                        icon: const Icon(FluentIcons.play, color: Colors.successPrimaryColor,),
+                        label: Text('Test Button' ,style: FluentTheme.of(context).typography.caption,),
+                        onPressed: () async {
+
+                          //DatabaseService databaseService = DatabaseService();
+
+                          //databaseService.queryByRemoteId(remoteId: 1, mimetype: 2);
+
+                          final result = await FileService.uploadChunk(
+                            //filePath: 'C:\\Users\\user\\Desktop\\watch\\yo\\yi\\Screenshot 2024-11-26 134729.png',
+                              filePath: 'C:\\Users\\user\\Downloads\\JetBrains.dotPeek.2024.3.3.web.exe',
+                              parentId: 914
+                          );
+                        }
+                    ),
+                  ],
                 ),
-                CommandBarButton(
-                    icon: const Icon(FluentIcons.play, color: Colors.successPrimaryColor,),
-                    label: const Text('Test Button'),
-                    onPressed: () async {
-
-                      DatabaseService databaseService = DatabaseService();
-
-                      databaseService.queryByRemoteId(remoteId: 1, mimetype: 2);
-
-                      // final result = await FileService.uploadChunk(
-                      //     filePath: 'C:\\Users\\user\\Desktop\\watch\\yo\\yi\\Screenshot 2024-11-26 134729.png',
-                      //     //filePath: 'C:\\Users\\user\\Downloads\\JetBrains.dotPeek.2024.3.3.web.exe',
-                      //     parentId: 909
-                      // );
-                    }
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         pane: NavigationPane(
           toggleable: false,
           selected: topIndex,
-          onChanged: (index) => setState(() => topIndex = index),
+          onChanged: (index) {
+            setState(() {
+              print(index);
+              topIndex = index;
+            });
+          },
           displayMode: PaneDisplayMode.compact,
           items: [
             PaneItem(
-                icon: Icon(FluentIcons.home), 
+                icon: Icon(FluentIcons.home),
                 title: Text('Home'),
                 body: Row(
                 children: [
@@ -439,18 +484,18 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: Container(
                                 child: Column(
                                   children: [
-                                    Text('files'),
+                                    Text('FILES', style: FluentTheme.of(context).typography.caption,),
                                     Padding(
                                       padding: EdgeInsets.all(10),
                                       child: Row(
                                         children: [
-                                          Expanded(child: Text('id', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('local_path', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('local_timestamp', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('local_modified', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('remote_id', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('remote_timestamp', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('to_delete', style: FluentTheme.of(context).typography.bodyStrong),),
+                                          Expanded(child: Text('id', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('local_path', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('local_timestamp', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('local_modified', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('remote_id', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('remote_timestamp', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('to_delete', style: FluentTheme.of(context).typography.caption),),
                                         ],
                                       ),
                                     ),
@@ -487,18 +532,18 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: Container(
                                 child: Column(
                                   children: [
-                                    Text('Folders', style: FluentTheme.of(context).typography.subtitle,),
+                                    Text('FOLDERS', style: FluentTheme.of(context).typography.caption,),
                                     Padding(
                                       padding: EdgeInsets.all(10.0),
                                       child: Row(
                                         children: [
-                                          Expanded(child: Text('id', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('local_path', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('local_timestamp', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('local_modified', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('remote_id', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('remote_timestamp', style: FluentTheme.of(context).typography.bodyStrong),),
-                                          Expanded(child: Text('to_delete', style: FluentTheme.of(context).typography.bodyStrong),),
+                                          Expanded(child: Text('id', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('local_path', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('local_timestamp', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('local_modified', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('remote_id', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('remote_timestamp', style: FluentTheme.of(context).typography.caption),),
+                                          Expanded(child: Text('to_delete', style: FluentTheme.of(context).typography.caption),),
                                         ],
                                       ),
                                     ),
@@ -599,7 +644,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         flex: 1,
                         child: InfoBar(
                           title: Container(
-                            height: 290,
+                            height: 240,
                             width: MediaQuery.of(context).size.width,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -611,7 +656,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               SizedBox(height: 10),
                               Text(
-                                Provider.of<UserProvider>(context).user!.userName,
+                                Provider.of<UserProvider>(context, listen: false).user!.userName,
                                 style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
@@ -620,14 +665,14 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               SizedBox(height: 10),
                               Text(
-                                Provider.of<UserProvider>(context).user!.userEmail,
+                                Provider.of<UserProvider>(context, listen: false).user!.userEmail,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w400,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-      
+
                               ]
                             ),
                           ),
@@ -641,11 +686,22 @@ class _MyHomePageState extends State<MyHomePage> {
                           title: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(FontAwesomeIcons.solidFolder, size: 40,),
-                              SizedBox(height: 10,),
-                              Text(
-                                'FOLDER PATH : $tempDir',
-                                style: TextStyle(fontSize: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Button(
+                                    style: ButtonStyle(
+                                      backgroundColor: ButtonState.all(Provider.of<SyncProvider>(context).isOffline ? Colors.orange : Colors.green),
+                                    ),
+                                    onPressed: (){},
+                                    child: Row(
+                                      children: [Text(Provider.of<SyncProvider>(context).isOffline ? 'Offline' : 'Online', style: TextStyle(color: Colors.white, fontSize: 10),)
+                                      ],
+                                    ),
+                                  ),
+                                  if(Provider.of<SyncProvider>(context).isSyncing)
+                                    SpinningIcon(icon: FontAwesomeIcons.arrowsRotate, color: Colors.blue),
+                                ],
                               ),
                               Container(
                                 padding: EdgeInsets.all(20),
@@ -653,7 +709,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: ListView.builder(
                                     itemCount: 4,
                                     itemBuilder: (context, index) {
-      
+
                                       List<dynamic> data = [
                                         {
                                           'icon': FluentIcons.info,
@@ -676,9 +732,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                           'value': '2 Minutes ago'
                                         },
                                       ];
-      
+
                                       return Container(
-                                        color: Provider.of<SyncProvider>(context).isSyncPaused ? Colors.transparent : index%2 == 0 ? Colors.grey[150] : Colors.grey[160] ,
+                                        color: Provider.of<SyncProvider>(context).isSyncPaused ? Colors.transparent : index%2 == 0 ? Colors.grey[30] : Colors.grey[20] ,
                                         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                                         child: Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -688,10 +744,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               children: [
                                                 Icon(data[index]['icon']),
                                                 SizedBox(width: 10,),
-                                                Text(data[index]['title'], style: FluentTheme.of(context).typography.body,),
+                                                Text(data[index]['title'], style: FluentTheme.of(context).typography.caption,),
                                               ],
                                             ),
-                                            Text(data[index]['value'], style: FluentTheme.of(context).typography.body,),
+                                            Text(data[index]['value'], style: FluentTheme.of(context).typography.caption,),
                                           ],
                                         ),
                                       );
@@ -704,8 +760,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                   actionButton(
                                       icon: FontAwesomeIcons.arrowsRotate,
                                       label: 'SYNC',
-                                      onPressed: (){
-                                        //SyncService.syncLocalFileFolderWithLocalDb();
+                                      onPressed: () async {
+                                        print(await PlatformDeviceId.getDeviceId);
                                       }
                                   ),
                                   if(Provider.of<SyncProvider>(context).isSyncPaused)
@@ -735,18 +791,18 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                   SizedBox(height: 20,),
-                  Expanded(
-                    child: Container(
-                      child: Row(
-                        children: [
-                          syncListTemplate(context: context, syncType: SyncType.newFolder),
-                          syncListTemplate(context: context, syncType: SyncType.newFile),
-                          syncListTemplate(context: context, syncType: SyncType.modifiedFolder),
-                          syncListTemplate(context: context, syncType: SyncType.modifiedFile),
-                        ],
-                      ),
-                    ),
-                  )
+                  // Expanded(
+                  //   child: Container(
+                  //     child: Row(
+                  //       children: [
+                  //         syncListTemplate(context: context, syncType: SyncType.newFolder),
+                  //         syncListTemplate(context: context, syncType: SyncType.newFile),
+                  //         syncListTemplate(context: context, syncType: SyncType.modifiedFolder),
+                  //         syncListTemplate(context: context, syncType: SyncType.modifiedFile),
+                  //       ],
+                  //     ),
+                  //   ),
+                  // )
                 ],
               )
             ),
@@ -760,10 +816,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             (BuildContext context, int index) {
                           // Get log messages from the Log class
                           return Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.only(left: 8, top: 2),
                             child: Text(
                               Log.logMessages[index], // Display the log message
-                              style: TextStyle(fontSize: 16, fontFamily: 'Courier'),
+                              style: TextStyle(fontSize: 10, fontFamily: 'Courier'),
                             ),
                           );
                         },
@@ -772,247 +828,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ],
                 )
-            )
-          ],
-          footerItems: [
-            PaneItem(
-              icon: Icon(FontAwesomeIcons.doorOpen, color: Colors.errorPrimaryColor,),
-              title: const Text('Logout'),
-              body: Container(
-                child: Column(
-                  children: [
-                    Button(
-                        child: Text('LOGOUT'),
-                        onPressed: (){
-      
-                          LocalStorage.clearData();
-                          Provider.of<UserProvider>(context, listen: false).user = null;
-                          Navigator.pushAndRemoveUntil(context, FluentPageRoute(builder: (_) => LoginScreen(newLogin: true)), (route) => false);
-      
-                        }
-                    )
-                  ],
-                ),
-              ),
             ),
           ],
         ),
       ),
-    );
-    return NavigationView(
-      //header: Text('Fluent UI Stateful Example'),
-      content: Row(
-        children: [
-          Expanded(
-              child: Container(
-                child: Column(
-                  children: [
-                    Text('recorded events'),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: eventList.length,
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                            //title: Text(eventList[eventList.length - 1 -index].path),
-                            title: Text(
-                                eventList[eventList.length - 1 - index]
-                                    .toString()),
-                            trailing: IconButton(
-                                onPressed: () async {
-                                  //if not the first event in the list, dont do anything
-                                  // if(eventList.length - 1 - index != 0) return;
-
-                                  // dynamic action = await processEvent();
-
-                                  // if(action != null){
-                                  //   actionQueue.add(action);
-                                  //   setState(() {});
-                                  // }
-                                },
-                                icon: (eventList.length - 1 - index) == 0
-                                    ? Icon(FluentIcons.play)
-                                    : Icon(FluentIcons.square_shape)
-                            ),
-                          );
-                        },
-                      ),
-                    )
-                  ],
-                ),
-              )
-          ),
-          Expanded(
-              child: Container(
-                child: Column(
-                  children: [
-                    Text('processed events'),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: actionQueue.length,
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                            subtitle: Text(
-                                actionQueue[actionQueue.length - 1 - index]
-                                    .toString()
-                            ),
-                            trailing: IconButton(
-                                onPressed: () async {
-                                  //if not the first event in the list, dont do anything
-                                  if (actionQueue.length - 1 - index != 0)
-                                    return;
-
-                                  databaseService.updateLocalDatabaseRecord(
-                                      queue: actionQueue[actionQueue.length -
-                                          1 - index],
-                                      db: databaseService
-                                  );
-
-                                  _queryFilesAndFolders();
-                                },
-                                icon: (actionQueue.length - 1 - index) == 0
-                                    ? Icon(FluentIcons.play)
-                                    : Icon(FluentIcons.pause)
-                            ),
-                          );
-                        },
-                      ),
-                    )
-                  ],
-                ),
-              )
-          ),
-          Expanded(
-              flex: 2,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Container(
-                        child: Column(
-                          children: [
-                            Text('files'),
-                            const Row(
-                              children: [
-                                Expanded(child: Text('id', style: TextStyle(
-                                    fontWeight: FontWeight.bold)),),
-                                Expanded(child: Text('local_path',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold)),),
-                                Expanded(child: Text('local_timestamp',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold)),),
-                                Expanded(child: Text('remote_id',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold)),),
-                                Expanded(child: Text('remote_timestamp',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold)),),
-                              ],
-                            ),
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: files.length,
-                                // Number of items in the list
-                                itemBuilder: (context, index) {
-                                  // Build each item
-                                  return listTemplate(
-                                      context: context,
-                                      id: files[index]['id'].toString(),
-                                      localPath: files[index]['local_path']
-                                          .toString(),
-                                      localTimestamp: files[index]['local_timestamp']
-                                          .toString(),
-                                      localModified: folders[index]['local_modified']
-                                          .toString(),
-                                      remoteId: files[index]['remote_id']
-                                          .toString(),
-                                      remoteTimestamp: files[index]['remote_timestamp']
-                                          .toString(),
-                                      toDelete: files[index]['to_delete']
-                                          .toString()
-                                  );
-                                },
-                              ),
-                            )
-                          ],
-                        )
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                        child: Column(
-                          children: [
-                            const Row(
-                              children: [
-                                Expanded(child: Text('id', style: TextStyle(
-                                    fontWeight: FontWeight.bold)),),
-                                Expanded(child: Text('local_path',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold)),),
-                                Expanded(child: Text('local_timestamp',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold)),),
-                                Expanded(child: Text('remote_id',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold)),),
-                                Expanded(child: Text('remote_timestamp',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold)),),
-                              ],
-                            ),
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: folders.length,
-                                // Number of items in the list
-                                itemBuilder: (context, index) {
-                                  // Build each item
-                                  return listTemplate(
-                                      context: context,
-                                      id: folders[index]['id'].toString(),
-                                      localPath: folders[index]['local_path']
-                                          .toString(),
-                                      localTimestamp: folders[index]['local_timestamp']
-                                          .toString(),
-                                      localModified: folders[index]['local_modified']
-                                          .toString(),
-                                      remoteId: folders[index]['remote_id']
-                                          .toString(),
-                                      remoteTimestamp: folders[index]['remote_timestamp']
-                                          .toString(),
-                                      toDelete: files[index]['to_delete']
-                                          .toString()
-                                  );
-                                },
-                              ),
-                            )
-                          ],
-                        )
-                    ),
-                  ),
-                ],
-              )
-          ),
-        ],
-      ),
-      // floatingActionButton: Row(
-      //   mainAxisAlignment: MainAxisAlignment.end,
-      //   children: <Widget>[
-      //     FloatingActionButton(
-      //       onPressed: () async {
-      //         databaseService.deleteAll();
-      //         queryFilesAndFolders();
-      //       },
-      //       child: Icon(Icons.delete),
-      //     ),
-      //     SizedBox(width: 20),
-      //     FloatingActionButton(
-      //       onPressed: () async {
-      //         SyncService.syncLocalFolderWithDb(
-      //             watchedDirectory: watchedDirectory);
-      //       },
-      //       child: Icon(Icons.sync),
-      //     ),
-      //   ],
-      // ),
     );
   }
 }

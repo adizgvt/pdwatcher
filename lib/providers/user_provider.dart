@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:loader_overlay/loader_overlay.dart';
 import 'package:pdwatcher/widgets/notification.dart';
 import 'package:provider/provider.dart';
 
@@ -37,7 +38,7 @@ class UserProvider extends ChangeNotifier {
 
     if(apiResponse.statusCode == 200){
 
-      Provider.of<UserProvider>(context, listen: false).user = userFromJson(jsonEncode(apiResponse.data));
+      user = userFromJson(jsonEncode(apiResponse.data));
       LocalStorage.setToken(user!.accessToken);
       Navigator.of(context).pushAndRemoveUntil(FluentPageRoute(builder: (context) => MyHomePage()), (route) => false);
 
@@ -54,6 +55,9 @@ class UserProvider extends ChangeNotifier {
     required String serverUrl,
     required String syncDirectory,
   }) async {
+
+    context.loaderOverlay.show();
+
     ApiResponse apiResponse = await apiService(
         data: {
           'user_email': email,
@@ -64,6 +68,8 @@ class UserProvider extends ChangeNotifier {
         path: '/api/login'
     );
 
+    context.loaderOverlay.hide();
+
     if(apiResponse.statusCode == 200){
 
       LocalStorage.setUsername(email);
@@ -71,9 +77,10 @@ class UserProvider extends ChangeNotifier {
       LocalStorage.setServerUrl(serverUrl);
       LocalStorage.setWatchedDirectory(syncDirectory);
 
-      Provider.of<UserProvider>(context, listen: false).user = userFromJson(jsonEncode(apiResponse.data));
-      LocalStorage.setToken(user!.accessToken);
-      Navigator.of(context).pushAndRemoveUntil(FluentPageRoute(builder: (context) => MyHomePage()), (route) => false);
+      user = userFromJson(jsonEncode(apiResponse.data));
+      await LocalStorage.setToken(user!.accessToken).then((val) {
+        Navigator.of(context).pushAndRemoveUntil(FluentPageRoute(builder: (context) => MyHomePage()), (route) => false);
+      });
 
     }
     else {

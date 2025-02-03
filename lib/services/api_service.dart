@@ -22,13 +22,13 @@ Future<ApiResponse> apiService({
   if(data != null){
     data.addAll({
       //todo flashes CMD change
-      'hostname': 'asd',
-      'uuid': await 'asd',
+      'hostname'  : await LocalStorage.getLocalHostname(),
+      'uuid'      : await LocalStorage.getDeviceId(),
     });
   }else{
     data = {
-      'hostname': 'asd',
-      'uuid': 'asd',
+      'hostname'  : await LocalStorage.getLocalHostname(),
+      'uuid'      : await LocalStorage.getDeviceId(),
     };
   }
 
@@ -98,12 +98,10 @@ Future<ApiResponse> apiService({
     }
     //PRINT LOGS
     if(kDebugMode && path != '/api/getChanges') {
-      print(serverUrl + path);
 
-      if(data != null) {
-        print('------------------------REQUEST DATA--------------------------------');
-        print(const JsonEncoder.withIndent('  ').convert(data));
-      }
+      print(serverUrl + path);
+      print('------------------------REQUEST DATA--------------------------------');
+      print(const JsonEncoder.withIndent('  ').convert(data));
 
       print('--------------------RESPONSE STATUS ${response?.statusCode}-----------------------------');
       if(response != null && response.data != null){

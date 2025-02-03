@@ -1,13 +1,14 @@
 import 'dart:io';
 
 import 'package:intl/intl.dart';
+import 'package:pdwatcher/services/local_storage_service.dart';
 
 extension FileNameExtension on String {
-  String renameWithTimestamp() {
+  Future<String> renameWithTimestamp() async {
 
     DateTime now = DateTime.now();
     String timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(now);
-    String hostName = Platform.localHostname;
+    String hostName = await LocalStorage.getLocalHostname() ?? '';
 
     int dotIndex = lastIndexOf('.');
     if (dotIndex == -1) {
@@ -49,7 +50,7 @@ extension FileNameExtension on String {
     return replaceAll('\\', '/');
   }
 
-  String replacelashWithBackSlash(){
+  String replaceSlashWithBackSlash(){
     return replaceAll('\\', '/');
   }
 

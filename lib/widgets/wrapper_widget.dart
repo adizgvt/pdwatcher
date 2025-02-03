@@ -10,11 +10,11 @@ wrapFluent({required Widget child}){
     //theme: FluentThemeData.light(),
     home: FluentTheme(
         data: FluentThemeData(
-          brightness: Brightness.light
+          brightness: Brightness.light,
         ),
         child: LoaderOverlay(
             overlayWidgetBuilder: (_) {
-              return ProgressRing();
+              return const ProgressRing();
             },
             overlayWholeScreen: true,
             overlayColor: Colors.grey[200],

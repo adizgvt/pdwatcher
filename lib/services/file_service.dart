@@ -36,42 +36,36 @@ class FileService {
     // return null;
 
     final task = DownloadTask(
-        url: Uri.encodeFull('$domain/api/download?file_id=$fileId'),
-        headers: {
+        url         : Uri.encodeFull('$domain/api/download?file_id=$fileId'),
+        headers     : {
           'Authorization' : 'Bearer $token',
           'Content'       : 'application/json',
-          'Accept': 'application/octet-stream',
+          'Accept'        : 'application/octet-stream',
         },
         post: {
           'file_id'   : fileId.toString(),
-          'hostname'  : Platform.localHostname,
-          'uuid'      : await PlatformDeviceId.getDeviceId,
+          'hostname'  : await LocalStorage.getLocalHostname(),
+          'uuid'      : await LocalStorage.getDeviceId(),
         },
-        filename: tempName,
-        directory: tempDir,
-        updates: Updates.statusAndProgress, // request status and progress updates
+        filename    : tempName,
+        directory   : tempDir,
+        updates     : Updates.statusAndProgress, // request status and progress updates
         requiresWiFi: true,
-        retries: 1,
-        metaData: 'data for me'
+        retries     : 1,
+        metaData    : 'data for me'
     );
 
     // Start download, and wait for result. Show progress and status changes
     // while downloadingf
 
     final result = await FileDownloader().download(task,
-        onProgress: (progress) {
+        onProgress          : (progress) {
           Log.verbose('Progress: ${progress * 100}%');
         },
-        onStatus: (status) => Log.verbose('Status: $status'),
-        elapsedTimeInterval: const Duration(seconds: 10),
-        onElapsedTime: (Duration duration) async {
+        onStatus            : (status) => Log.verbose('Status: $status'),
+        elapsedTimeInterval : const Duration(seconds: 10),
+        onElapsedTime       : (Duration duration) async {
           Log.verbose(duration.toString());
-          // ApiResponse response = await apiService(serviceMethod: ServiceMethod.get, path: '/test');
-          // if(response.statusCode != 200){
-          //   ApiResponse apiResponse = ApiResponse(); //dummy response
-          //   apiResponse.message = "Download fail. please check connection";
-          //   FileDownloader().cancelTasksWithIds(await FileDownloader().allTaskIds());
-          // }
         }
     );
 
@@ -139,8 +133,8 @@ class FileService {
     Response? response = await uploader.uploadUsingFilePath(
       data: {
         'parent_id': parentId.toString(),
-        'hostname': Platform.localHostname,
-        'uuid': await PlatformDeviceId.getDeviceId,
+        'hostname'  : await LocalStorage.getLocalHostname(),
+        'uuid'      : await LocalStorage.getDeviceId(),
       },
       fileName: fileName,
       filePath: filePath,
@@ -202,20 +196,22 @@ class FileService {
       final request = http.MultipartRequest('POST', Uri.parse('$domain/api/upload'))
         ..headers['Authorization']      = 'Bearer $token'
         ..headers['Accept']             = 'application/json'
-        ..fields['hostname']            = Platform.localHostname
-        ..fields['uuid']                = await PlatformDeviceId.getDeviceId ?? ''
+
+        ..fields['hostname']            = await LocalStorage.getLocalHostname() ?? ''
+        ..fields['uuid']                = await LocalStorage.getDeviceId() ?? ''
         ..fields['dzuuid']              = uuid
         ..fields['dzchunkindex']        = i.toString()
         ..fields['dztotalchunkcount']   = totalChunks.toString()
         ..fields['parent_id']           = parentId.toString()
+
         ..files.add(http.MultipartFile.fromBytes('file', chunkData, filename: fileName));
 
-      final response = await request.send();
-      final responseBody = await http.Response.fromStream(response);
+      final response      = await request.send();
+      final responseBody  = await http.Response.fromStream(response);
 
       print('chunk ${i+1}/$totalChunks');
-      print('Response Status Code: ${responseBody.statusCode}');
-      print('Response Body : ${responseBody.body}');
+      print('Response Status Code : ${responseBody.statusCode}');
+      print('Response Body        : ${responseBody.body}');
 
       if (![200, 201].contains(responseBody.statusCode)) {
         print('Upload failed for chunk $i with status code: ${responseBody.statusCode}');

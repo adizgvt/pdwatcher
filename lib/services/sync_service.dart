@@ -320,7 +320,7 @@ abstract class SyncService {
             if(localDBData[0].localModified == 1  && await File(localDBData[0].localPath).length() != file.size){
 
               //rename local file
-              String renamed = localDBData[0].localPath.toString().renameWithTimestamp();
+              String renamed = await localDBData[0].localPath.toString().renameWithTimestamp();
 
               File(localDBData[0].localPath).renameSync(renamed);
 
@@ -403,11 +403,17 @@ abstract class SyncService {
 
         if(isFile){
           File(toDelete[0].localPath).deleteSync();
-          databaseService.deleteFile(path: toDelete[0].localPath, forceDelete: true);
+          databaseService.deleteFile(
+              path        : toDelete[0].localPath,
+              forceDelete : true
+          );
         }
         else {
           Directory(toDelete[0].localPath).deleteSync(recursive: true);
-          databaseService.deleteFolder(path: toDelete[0].localPath, forceDelete: true);
+          databaseService.deleteFolder(
+              path        : toDelete[0].localPath,
+              forceDelete : true
+          );
         }
       } catch (e){
         print('error deleting $e');
@@ -613,7 +619,7 @@ abstract class SyncService {
         }
 
         //remove remote id, timestamp for all files and folders in said directory;
-        final List<FileSystemEntity> children = await Directory('$watchedDir\\${parentPath.removeDuplicateSlash().replacelashWithBackSlash().removeDuplicateSlash()}')
+        final List<FileSystemEntity> children = await Directory('$watchedDir\\${parentPath.removeDuplicateSlash().replaceSlashWithBackSlash().removeDuplicateSlash()}')
                                                       .list(recursive: true, followLinks: false)
                                                       .toList();
 
@@ -1174,7 +1180,7 @@ abstract class SyncService {
 
   static _deleteFoldersAndFiles(context) async {
 
-    //this is actually remote -> local
+    //this is actually local -> remote
 
     DatabaseService databaseService = DatabaseService();
 

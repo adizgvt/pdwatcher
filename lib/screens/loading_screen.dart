@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:custom_platform_device_id/platform_device_id.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:pdwatcher/screens/home_screen.dart';
 import 'package:pdwatcher/services/drive_service.dart';
@@ -31,6 +33,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
 
       final result = await DriveInfo.getDriveName();
+
+      String localHostName = Platform.localHostname;
+      LocalStorage.setLocalHostname(localHostName);
+
+      String deviceId = await PlatformDeviceId.getDeviceId ?? '';
+      LocalStorage.setDeviceId(deviceId);
 
       if(!result){
         showDialog<String>(

@@ -25,3 +25,9 @@ List<String> microsoftOfficeExtensions = [
   '.pptx'
 ];
 
+abstract class ApiPath{
+
+  static const getChanges = '/api/getChanges';
+
+}
+
