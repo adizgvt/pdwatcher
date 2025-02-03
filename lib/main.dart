@@ -108,6 +108,16 @@ void main() async {
 
 }
 
+class Dummy extends StatelessWidget {
+  const Dummy({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text('dummy'));
+  }
+}
+
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
