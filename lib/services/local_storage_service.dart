@@ -86,7 +86,13 @@ abstract class LocalStorage {
 
   static Future<void> setDeviceId(String deviceId) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_DEVICE_ID, deviceId);
+    await prefs.setString(
+        _DEVICE_ID,
+        deviceId
+            .replaceAll('\n', '')
+            .replaceAll('\r', '')
+            .replaceAll(' ', '')
+    );
   }
 
   static Future<String?> getDeviceId() async {

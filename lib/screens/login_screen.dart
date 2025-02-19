@@ -5,10 +5,14 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 import 'package:pdwatcher/services/local_storage_service.dart';
 import 'package:pdwatcher/utils/consts.dart';
+import 'package:pdwatcher/widgets/appbar_template.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:tray_manager/tray_manager.dart';
+import 'package:window_manager/window_manager.dart';
 import '../providers/user_provider.dart';
 import '../services/log_service.dart';
+import '../services/tray_service.dart';
 import '../widgets/notification.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,7 +24,7 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with TrayListener{
 
   TextEditingController emailController     = TextEditingController(text: '');
   TextEditingController passwordController  = TextEditingController(text: '');
@@ -31,6 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void initState() {
+    trayManager.addListener(this);
     _setLoginData();
     super.initState();
   }
@@ -55,12 +60,29 @@ class _LoginScreenState extends State<LoginScreen> {
       syncDirectory.text        = await LocalStorage.getWatchedDirectory()  ?? '';
     }
   }
+
+  @override
+  void dispose() {
+    trayManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onTrayIconMouseDown() {
+    TrayService.onTrayIconMouseDown();
+  }
+
+  @override
+  Future<void> onTrayMenuItemClick(MenuItem menuItem) async {
+    TrayService.onTrayMenuItemClick(menuItem, context);
+  }
   
   @override
   Widget build(BuildContext context) {
     return wrapFluent(
       child: LoaderOverlay(
         child: NavigationView(
+          appBar: appBarTemplate(),
           content: IgnorePointer(
             ignoring: absorb,
             child: Card(

@@ -1,15 +1,17 @@
-String   baseDir = '';
+String baseDir              = '';
 
-String tempDir = '${baseDir}temp/';
-String logDir  = '${baseDir}logs/';
-String dbDir   = '${baseDir}data/';
+String tempDir              = '${baseDir}temp/';
+String logDir               = '${baseDir}logs/';
+String dbDir                = '${baseDir}data/';
 
 String initialUsername      = 'admin@pocketdata.com.my';
 String initialPassword      = '1';
 String initialServerurl     = 'https://kocek.pocketdata.com.my';
 String initialSyncDirectory = 'C:\\Users\\user\\Desktop\\watch';
 
-String appLogo = 'assets/logo.png';
+String appLogo              = 'assets/logo.png';
+
+const showAllMenu           = true;
 
 Map<String, dynamic> hashConfig = {
   'salt'          : 'k0c3k',

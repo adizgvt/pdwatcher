@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:custom_platform_device_id/platform_device_id.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:pdwatcher/extensions.dart';
 import 'package:pdwatcher/screens/login_screen.dart';
+import 'package:pdwatcher/services/tray_service.dart';
 import 'package:pdwatcher/utils/enums.dart';
 import 'package:pdwatcher/services/database_service.dart';
 import 'package:pdwatcher/services/event_service.dart';
@@ -17,9 +19,12 @@ import 'package:pdwatcher/widgets/spinning_icon.dart';
 import 'package:pdwatcher/widgets/sync_list_template.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:restartfromos/restartatos.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../models/usage.dart';
 import '../providers/sync_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/file_service.dart';
@@ -31,7 +36,7 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with TrayListener{
 
   int topIndex = 3;
 
@@ -63,7 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-
+    trayManager.addListener(this);
     _checkDirExist();
     _initSqlDB();
     _startWatcher();
@@ -205,6 +210,8 @@ class _MyHomePageState extends State<MyHomePage> {
       await SyncService.syncRemoteToLocal(context);
       await SyncService.syncLocalToRemote(context);
 
+      await Provider.of<SyncProvider>(context, listen: false).getUsage();
+
     });
   }
 
@@ -222,6 +229,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
 
+    trayManager.removeListener(this);
+
     if(timer != null){
       timer!.cancel();
       timer = null;
@@ -233,6 +242,16 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     super.dispose();
+  }
+
+  @override
+  void onTrayIconMouseDown() {
+    TrayService.onTrayIconMouseDown();
+  }
+
+  @override
+  Future<void> onTrayMenuItemClick(MenuItem menuItem) async {
+    TrayService.onTrayMenuItemClick(menuItem, context);
   }
 
   @override
@@ -305,6 +324,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                 ],
               ),
+              if(showAllMenu)
               Padding(
                 padding: EdgeInsets.zero,
                 child: CommandBar(
@@ -632,7 +652,7 @@ class _MyHomePageState extends State<MyHomePage> {
             icon: Icon(FluentIcons.view_dashboard),
             title: const Text('Dashboard'),
             body: Container(
-              padding: EdgeInsets.symmetric(vertical: 50, horizontal: 50),
+              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -644,7 +664,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         flex: 1,
                         child: InfoBar(
                           title: Container(
-                            height: 240,
+                            height: 205,
                             width: MediaQuery.of(context).size.width,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -705,16 +725,18 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               Container(
                                 padding: EdgeInsets.all(20),
-                                height: 200,
+                                height: 160,
                                 child: ListView.builder(
-                                    itemCount: 4,
+                                    itemCount: 3,
                                     itemBuilder: (context, index) {
+
+                                      Usage? usage = Provider.of<SyncProvider>(context, listen: true).usage;
 
                                       List<dynamic> data = [
                                         {
                                           'icon': FluentIcons.info,
                                           'title' : 'Folder ID',
-                                          'value': '21313'
+                                          'value': usage == null ? '-' : usage.rootParentId.toString()
                                         },
                                         {
                                           'icon': FluentIcons.folder_fill,
@@ -723,14 +745,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                         },
                                         {
                                           'icon': FluentIcons.globe,
-                                          'title' : 'Size',
-                                          'value': '21313 MB'
-                                        },
-                                        {
-                                          'icon': FluentIcons.sync,
-                                          'title' : 'Last Scan',
-                                          'value': '2 Minutes ago'
-                                        },
+                                          'title' : 'Usage',
+                                          'value':  usage == null ? '-' : '${usage.usage.getSize()} / ${usage.quota} GB'
+                                        }
                                       ];
 
                                       return Container(
@@ -758,28 +775,36 @@ class _MyHomePageState extends State<MyHomePage> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   actionButton(
-                                      icon: FontAwesomeIcons.arrowsRotate,
-                                      label: 'SYNC',
+                                      icon: FontAwesomeIcons.trash,
+                                      label: 'DELETE ALL',
                                       onPressed: () async {
-                                        print(await PlatformDeviceId.getDeviceId);
+                                        databaseService.deleteAll();
+                                        _queryFilesAndFolders();
                                       }
                                   ),
-                                  if(Provider.of<SyncProvider>(context).isSyncPaused)
-                                    actionButton(
-                                        icon: FontAwesomeIcons.play,
-                                        label: 'RESUME',
-                                        onPressed: (){
-                                          Provider.of<SyncProvider>(context, listen: false).setResume();
-                                        }
-                                    ),
-                                  if(!Provider.of<SyncProvider>(context).isSyncPaused)
-                                    actionButton(
-                                        icon: FontAwesomeIcons.pause,
-                                        label: 'PAUSE',
-                                        onPressed: (){
-                                          Provider.of<SyncProvider>(context, listen: false).setPause();
-                                        }
-                                    )
+                                  // actionButton(
+                                  //     icon: FontAwesomeIcons.trash,
+                                  //     label: 'RESTART',
+                                  //     onPressed: () async {
+                                  //       RestartFromOS.restartApp(appName: 'build\\windows\\x64\\runner\\Debug\\pdwatcher');
+                                  //     }
+                                  // ),
+                                  // if(Provider.of<SyncProvider>(context).isSyncPaused)
+                                  //   actionButton(
+                                  //       icon: FontAwesomeIcons.play,
+                                  //       label: 'RESUME',
+                                  //       onPressed: (){
+                                  //         Provider.of<SyncProvider>(context, listen: false).setResume();
+                                  //       }
+                                  //   ),
+                                  // if(!Provider.of<SyncProvider>(context).isSyncPaused)
+                                  //   actionButton(
+                                  //       icon: FontAwesomeIcons.pause,
+                                  //       label: 'PAUSE',
+                                  //       onPressed: (){
+                                  //         Provider.of<SyncProvider>(context, listen: false).setPause();
+                                  //       }
+                                  //   )
                                 ],
                               )
                             ],
@@ -791,6 +816,28 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                   SizedBox(height: 20,),
+                  Container(
+                    height: 200,
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int index) {
+                              // Get log messages from the Log class
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 8, top: 2),
+                                child: Text(
+                                  Log.logMessages[index], // Display the log message
+                                  style: TextStyle(fontSize: 9, fontFamily: 'Courier'),
+                                ),
+                              );
+                            },
+                            childCount: Log.logMessages.length, // The number of log messages to display
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                   // Expanded(
                   //   child: Container(
                   //     child: Row(

@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   platform_device_id_linux
+  tray_manager
   window_manager
 )
 

@@ -1,11 +1,7 @@
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:pdwatcher/chunker.dart';
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:crypto/crypto.dart';
-import 'package:pdwatcher/cdc_chunker.dart';
 import 'package:pdwatcher/providers/file_provider.dart';
 import 'package:pdwatcher/providers/sync_provider.dart';
 import 'package:pdwatcher/providers/user_provider.dart';
@@ -13,10 +9,11 @@ import 'package:pdwatcher/screens/loading_screen.dart';
 import 'package:pdwatcher/services/log_service.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'dart:ui' as ui;
-import 'dart:ffi' hide Size;
+//import 'dart:ui' as ui;
+//import 'dart:ffi' hide Size;
 
 void main() async {
 
@@ -30,12 +27,32 @@ void main() async {
   //windowManager.setClosable(false);  //
   windowManager.setAsFrameless();
   windowManager.setTitle('POCKET DATA SYNC DESKTOP CLIENT');
-  windowManager.setAlignment(Alignment.center);
   windowManager.setResizable(false);
   windowManager.setSize(const Size(800, 600));
   windowManager.setMinimumSize(const Size(800, 600));
   windowManager.setMaximumSize(const Size(800, 600));
-  windowManager.setSkipTaskbar(false);
+  windowManager.setSkipTaskbar(true);
+
+  //----------------------------------------------------------------------------
+
+  await trayManager.setIcon('assets/pd.ico');
+
+  Menu menu = Menu(
+    items: [
+      MenuItem(
+        key: 'show_window',
+        label: 'Show Window',
+      ),
+      MenuItem.separator(),
+      MenuItem(
+        key: 'exit_app',
+        label: 'Exit App',
+      ),
+    ],
+  );
+  await trayManager.setContextMenu(menu);
+
+  //----------------------------------------------------------------------------
 
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
 

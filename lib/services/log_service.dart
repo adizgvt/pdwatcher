@@ -34,7 +34,7 @@ class Log {
 
     _logMessages.add(message);
 
-    if (_logMessages.length > 1000) {
+    if (_logMessages.length > 1000 && !showAllMenu) {
       _logMessages.removeRange(0, _logMessages.length - 1000);
     }
 

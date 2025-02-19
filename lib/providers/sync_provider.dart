@@ -5,6 +5,7 @@ import 'package:pdwatcher/models/file_folder_info.dart';
 
 import '../models/api_response.dart';
 import '../models/change.dart';
+import '../models/usage.dart';
 import '../services/api_service.dart';
 import '../services/log_service.dart';
 import '../utils/enums.dart';
@@ -29,6 +30,8 @@ class SyncProvider extends ChangeNotifier {
   List<dynamic> ignoreList = [];
   
   Change? change;
+
+  Usage? usage;
 
   void setOffline() {
     isOffline = true;
@@ -110,13 +113,9 @@ class SyncProvider extends ChangeNotifier {
 
     change = null;
 
-
     ApiResponse apiResponse = await apiService(
-        data: {
-          //'Time': DateTime.now().millisecondsSinceEpoch~/1000,
-        },
-        serviceMethod: ServiceMethod.post,
-        path: '/api/getChanges'
+        serviceMethod : ServiceMethod.post,
+        path          : '/api/getChanges'
     );
 
     if(apiResponse.statusCode == 200){
@@ -139,6 +138,23 @@ class SyncProvider extends ChangeNotifier {
     else {
       change = null;
     }
+  }
+
+  getUsage() async {
+
+    ApiResponse apiResponse = await apiService(
+        serviceMethod : ServiceMethod.post,
+        path          : '/api/usage/info'
+    );
+
+    if(apiResponse.statusCode == 200){
+      usage = usageFromJson(jsonEncode(apiResponse.data));
+      notifyListeners();
+    }
+    else {
+      change = null;
+    }
+
   }
 
 }

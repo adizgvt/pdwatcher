@@ -105,8 +105,8 @@ class FileService {
     required int parentId,
   }) async {
 
-    return uploadSingleFile(filePath: filePath, parentId: parentId);
-    //return uploadChunk(filePath: filePath, parentId: parentId);
+    //return uploadSingleFile(filePath: filePath, parentId: parentId);
+    return uploadChunk(filePath: filePath, parentId: parentId);
   }
 
   static Future<Map<String, dynamic>?> uploadSingleFile({

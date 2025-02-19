@@ -102,23 +102,23 @@ abstract class SyncService {
     }
 
     //check internet connection
-    // final connectivityResult = await (Connectivity().checkConnectivity());
-    //
-    // switch (connectivityResult) {
-    //   case ConnectivityResult.none:
-    //     Log.error('No internet connection. Sync operation aborted');
-    //     Provider.of<SyncProvider>(context, listen: false).setOffline();
-    //     return false;
-    //   case ConnectivityResult.ethernet:
-    //   case ConnectivityResult.wifi:
-    //   case ConnectivityResult.vpn:
-    //     Log.info('Internet OK');
-    //     Provider.of<SyncProvider>(context, listen: false).setOnline();
-    //   default:
-    //     Provider.of<SyncProvider>(context, listen: false).setOffline();
-    //     Log.error('Unknown connection status');
-    //     return false;
-    // }
+    final connectivityResult = await (Connectivity().checkConnectivity());
+
+    switch (connectivityResult) {
+      case ConnectivityResult.none:
+        Log.error('No internet connection. Sync operation aborted');
+        Provider.of<SyncProvider>(context, listen: false).setOffline();
+        return false;
+      case ConnectivityResult.ethernet:
+      case ConnectivityResult.wifi:
+      case ConnectivityResult.vpn:
+        Log.info('Internet OK');
+        Provider.of<SyncProvider>(context, listen: false).setOnline();
+      default:
+        Provider.of<SyncProvider>(context, listen: false).setOffline();
+        Log.error('Unknown connection status');
+        return false;
+    }
 
     await Provider.of<SyncProvider>(context, listen: false).getChanges(context);
 
