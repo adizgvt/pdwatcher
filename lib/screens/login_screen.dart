@@ -211,13 +211,67 @@ class _LoginScreenState extends State<LoginScreen> with TrayListener{
                               return;
                             }
 
-                            Provider.of<UserProvider>(context, listen: false).login(
-                              context: context,
-                              email: emailController.text.trim(),
-                              password: passwordController.text.trim(),
-                              serverUrl: serverUrlController.text.trim(),
-                              syncDirectory: syncDirectory.text.trim(),
-                            );
+                            bool isUsed = await LocalStorage.isDirectoryUsed(emailController.text.toLowerCase().trim(), syncDirectory.text.trim());
+
+                            if (isUsed) {
+                              NotificationBar.error(context, message: "⚠️ Directory already in use by another account.");
+                              return;
+                            }
+
+                            bool directoryChanged = await LocalStorage.isDirectoryChanged(emailController.text.toLowerCase().trim(), syncDirectory.text.trim());
+
+                            if (directoryChanged) {
+
+                              String? previousDirectory = await LocalStorage.getPreviousSyncDirectory(emailController.text.toLowerCase().trim());
+
+                              await showDialog<String>(
+                                context: context,
+                                builder: (context) => ContentDialog(
+                                  title: const Text('Warning'),
+                                  content: Text(
+                                    'You have changed your sync directory. Previously it is $previousDirectory. If you continue, the old sync directory will be deleted and the application will re-sync all files in the new directory.',
+                                  ),
+                                  actions: [
+                                    Button(
+                                      child: const Text('Confirm'),
+                                      onPressed: () async {
+                                        Navigator.of(context).pop();
+                                        Provider.of<UserProvider>(context, listen: false).login(
+                                          context             : context,
+                                          email               : emailController.text.toLowerCase().trim(),
+                                          password            : passwordController.text.trim(),
+                                          serverUrl           : serverUrlController.text.trim(),
+                                          syncDirectory       : syncDirectory.text.trim(),
+                                          deleteOldDirectory  : true,
+                                          oldDirectoryPath    : previousDirectory,
+                                        );
+
+                                        // Delete file here
+                                      },
+                                    ),
+                                    FilledButton(
+                                      child: const Text('Use Old Directory'),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        syncDirectory.text = previousDirectory!;
+                                        setState(() {});
+
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }else {
+                              Provider.of<UserProvider>(context, listen: false).login(
+                                context       : context,
+                                email         : emailController.text.toLowerCase().trim(),
+                                password      : passwordController.text.trim(),
+                                serverUrl     : serverUrlController.text.trim(),
+                                syncDirectory : syncDirectory.text.trim(),
+                              );
+                            }
+
+
 
                             }
                         )

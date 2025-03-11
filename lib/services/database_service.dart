@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:pdwatcher/services/local_storage_service.dart';
 import 'package:pdwatcher/utils/consts.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -33,8 +36,14 @@ class DatabaseService {
   Future<Database> _initDatabase() async {
 
     Log.info('Initializing Database......');
+
+    String? username = await LocalStorage.getUsername();
+
+    if(username == null){
+      exit(1);
+    }
     // Get the database path
-    String path = '${dbDir}asdsadsad.db';
+    String path = '$dbDir$username.db';
 
     Log.info('Database path: $path');
 

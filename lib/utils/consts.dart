@@ -4,14 +4,22 @@ String tempDir              = '${baseDir}temp/';
 String logDir               = '${baseDir}logs/';
 String dbDir                = '${baseDir}data/';
 
-String initialUsername      = 'admin@pocketdata.com.my';
-String initialPassword      = '1';
-String initialServerurl     = 'https://kocek.pocketdata.com.my';
-String initialSyncDirectory = 'C:\\Users\\user\\Desktop\\watch';
+const appPort             = 4809;
+
+// String initialUsername      = 'aws@local.my';
+// String initialPassword      = '1';
+// String initialServerurl     = 'https://kocek.pocketdata.com.my';
+// String initialSyncDirectory = 'C:\\Users\\user\\Desktop\\watchaws';
+
+String initialUsername      = '';
+String initialPassword      = '';
+String initialServerurl     = '';
+String initialSyncDirectory = '';
 
 String appLogo              = 'assets/logo.png';
 
-const showAllMenu           = true;
+bool showAllMenu           = false;
+String adminPassword       = '4809';
 
 Map<String, dynamic> hashConfig = {
   'salt'          : 'k0c3k',

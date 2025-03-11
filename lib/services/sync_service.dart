@@ -1102,9 +1102,12 @@ abstract class SyncService {
       //fallback
       parentId ??= change.files.firstWhereOrNull((element) => !element.path.replaceFirst('files/', '').contains('/'))?.parent;
 
-      //parentId ??= Provider.of<UserProvider>(context, listen: false).user!.rootParentId;
+      if(parentId == null && path == 'files/'){
+        parentId = Provider.of<UserProvider>(context, listen: false).user!.rootParentId;
+      }
 
       if(parentId == null){
+        print('Parent folder not found');
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
           syncType  : SyncType.newFile,
           index     : index,

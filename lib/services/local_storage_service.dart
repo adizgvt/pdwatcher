@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:pdwatcher/services/log_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,6 +13,7 @@ abstract class LocalStorage {
   static const String _LAST_DELETE           = 'last+delete';
   static const String _LOCAL_HOSTNAME        = 'localHostname';
   static const String _DEVICE_ID             = 'deviceId';
+  static const String _WATCHED_DIRECTORIES   = 'watch_directories';
 
   static Future<void> setWatchedDirectory(String directory) async {
 
@@ -100,9 +103,117 @@ abstract class LocalStorage {
     return prefs.getString(_DEVICE_ID);
   }
 
+  static Future<void> setUserWatchDirHistory({required String username, required String directory}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        username,
+        directory
+    );
+  }
+
+  static Future<bool> isWatchDirAvailable({required String email, watchedDir}) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    for (String key in prefs.getKeys()) {
+
+      if(key == _WATCHED_DIRECTORY_KEY){//skip this
+        break;
+      }
+
+      var value = prefs.get(key);
+
+      if (value == watchedDir) { //stored watched directory = chosen watchedDirectory
+        if(key != email){
+          //stored email != current email
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  static Future<bool> isDirectoryUsed(String email, String watchDirectory) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? storedData = prefs.getString(_WATCHED_DIRECTORIES);
+
+    if (storedData != null) {
+
+      print(storedData);
+
+      List<Map<String, dynamic>> watchList = List<Map<String, dynamic>>.from(json.decode(storedData));
+
+      for (var entry in watchList) {
+        if (entry['directory'] == watchDirectory && entry['email'] != email) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  static Future<void> saveWatchDirectoriesList(String email, String watchDirectory) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? storedData = prefs.getString(_WATCHED_DIRECTORIES);
+
+    List<Map<String, dynamic>> watchList = [];
+
+    if (storedData != null) {
+      watchList = List<Map<String, dynamic>>.from(json.decode(storedData));
+    }
+
+    watchList.removeWhere((entry) => entry['email'] == email);
+    watchList.add({'email': email, 'directory': watchDirectory});
+
+    await prefs.setString('watch_directories', json.encode(watchList));
+  }
+
+  static Future<bool> isDirectoryChanged(String email, String newDirectory) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? storedData = prefs.getString(_WATCHED_DIRECTORIES);
+
+    if (storedData != null) {
+      List<Map<String, dynamic>> watchList = List<Map<String, dynamic>>.from(json.decode(storedData));
+
+      for (var entry in watchList) {
+        if (entry['email'] == email) {
+          return entry['directory'] != newDirectory;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  static Future<String?> getPreviousSyncDirectory(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? storedData = prefs.getString(_WATCHED_DIRECTORIES);
+
+    if (storedData != null) {
+      List<Map<String, dynamic>> watchList = List<Map<String, dynamic>>.from(json.decode(storedData));
+
+      for (var entry in watchList) {
+        if (entry['email'] == email) {
+          return entry['directory'];
+        }
+      }
+    }
+
+    return null;
+  }
+
+
+
   static Future<void> clearData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    final allKeys = prefs.getKeys();
+
+    List<String> keysToKeep = [_WATCHED_DIRECTORIES];
+
+    for (String key in allKeys) {
+      if (!keysToKeep.contains(key)) {
+        await prefs.remove(key);
+      }
+    }
   }
 }
 

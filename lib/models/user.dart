@@ -12,6 +12,7 @@ class User {
   String accessToken;
   String userName;
   String userEmail;
+  String userPicture;
   String tokenType;
   int storageId;
   int rootParentId;
@@ -22,6 +23,7 @@ class User {
     required this.accessToken,
     required this.userName,
     required this.userEmail,
+    required this.userPicture,
     required this.tokenType,
     required this.storageId,
     required this.rootParentId,
@@ -33,6 +35,7 @@ class User {
     accessToken: json["accessToken"],
     userName: json["user_name"],
     userEmail: json["user_email"],
+    userPicture: json["user_picture"],
     tokenType: json["token_type"],
     storageId: json["storageId"],
     rootParentId: json["rootParentId"],
@@ -44,6 +47,7 @@ class User {
     "accessToken": accessToken,
     "user_name": userName,
     "user_email": userEmail,
+    "user_picture": userPicture,
     "token_type": tokenType,
     "storageId": storageId,
     "rootParentId": rootParentId,

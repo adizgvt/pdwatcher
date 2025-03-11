@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:custom_platform_device_id/platform_device_id.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pdwatcher/extensions.dart';
@@ -19,7 +18,6 @@ import 'package:pdwatcher/widgets/spinning_icon.dart';
 import 'package:pdwatcher/widgets/sync_list_template.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
-import 'package:restartfromos/restartatos.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
@@ -30,6 +28,7 @@ import '../providers/user_provider.dart';
 import '../services/file_service.dart';
 import '../services/log_service.dart';
 import '../widgets/action_button.dart';
+import '../widgets/notification.dart';
 
 class MyHomePage extends StatefulWidget {
   @override
@@ -64,6 +63,8 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
   Timer? timer;
 
   Timer? syncTimer;
+  
+  TextEditingController adminPanelPasswordController = TextEditingController();
 
 
   @override
@@ -277,6 +278,55 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
                         }
                     ),
                   ),
+                  Tooltip(
+                    message: 'Minimize',
+                    child: IconButton(
+                      icon: const Icon(FluentIcons.local_admin, size: 12.0),
+                      onPressed: () async{
+                        await showDialog<String>(
+                          context: context,
+                          builder: (context) => ContentDialog(
+                            title: const Text('Admin Panel'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Please enter admin password to show admin panel',
+                                ),
+                                SizedBox(height: 10,),
+                                PasswordBox(
+                                  placeholder: 'Password',
+                                  controller: adminPanelPasswordController,
+                                  revealMode: PasswordRevealMode.peek,
+                                )
+                              ],
+                            ),
+                            actions: [
+                              FilledButton(
+                                child: const Text('SUBMIT'),
+                                onPressed: () async {
+                                  if(adminPanelPasswordController.text.trim() == adminPassword){
+                                    Navigator.pop(context);
+                                    adminPanelPasswordController.text = '';
+                                    showAllMenu = !showAllMenu;
+                                    setState(() {});
+                                  } else {
+                                    await NotificationBar.error(context, message: 'Incorrect password');
+                                    adminPanelPasswordController.text = '';
+                                  }
+                                },
+                              ),
+                              Button(
+                                child: const Text('Cancel'),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 10,),
                   Tooltip(
                     message: 'Log out',
                     child: IconButton(
@@ -672,7 +722,7 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
                               children: [
                               CircleAvatar(
                                 radius: 50,
-                                backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=4'),
+                                backgroundImage: NetworkImage(Provider.of<UserProvider>(context, listen: false).user!.userPicture),
                               ),
                               SizedBox(height: 10),
                               Text(

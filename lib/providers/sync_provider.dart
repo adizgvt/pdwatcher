@@ -129,7 +129,7 @@ class SyncProvider extends ChangeNotifier {
         change!.files.removeWhere((file) => !file.path.startsWith('files/'));
 
         //REPLACE files/ WITH '' -> because remote root dir != local watched dir
-        //REPLACE / WITH \ BECAUSE LINUX -> WINDOWS
+        //REPLACE / WITH \ BECAUSE (SERVER)LINUX -> (CLIENT)WINDOWS
         change!.files.forEach((file) {
           file.path = file.path.replaceFirst('files/', '').replaceAll('/', '\\');
         });

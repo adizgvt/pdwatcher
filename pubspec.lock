@@ -259,6 +259,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_single_instance:
+    dependency: "direct main"
+    description:
+      name: flutter_single_instance
+      sha256: a0eef1d359705cdbc9031d551a8c4fc68687b731c71881e8eeb97e1a12b9c7a0
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.2"
   flutter_test:
     dependency: "direct dev"
     description: flutter

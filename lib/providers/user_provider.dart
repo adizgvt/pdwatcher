@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:loader_overlay/loader_overlay.dart';
+import 'package:pdwatcher/services/database_service.dart';
 import 'package:pdwatcher/widgets/notification.dart';
 import 'package:provider/provider.dart';
 
@@ -54,6 +56,8 @@ class UserProvider extends ChangeNotifier {
     required String password,
     required String serverUrl,
     required String syncDirectory,
+    bool deleteOldDirectory = false,
+    String? oldDirectoryPath,
   }) async {
 
     context.loaderOverlay.show();
@@ -76,6 +80,20 @@ class UserProvider extends ChangeNotifier {
       LocalStorage.setPassword(password);
       LocalStorage.setServerUrl(serverUrl);
       LocalStorage.setWatchedDirectory(syncDirectory);
+      LocalStorage.saveWatchDirectoriesList(email.toLowerCase().trim(), syncDirectory);
+
+      if(deleteOldDirectory && oldDirectoryPath != null){
+        DatabaseService databaseService = DatabaseService();
+        databaseService.deleteAll();
+
+        final oldDir = Directory(oldDirectoryPath);
+        if (await oldDir.exists()) {
+          await oldDir.delete(recursive: true);
+          print("Directory deleted: $oldDirectoryPath");
+        } else {
+          print("Directory does not exist: $oldDirectoryPath");
+        }
+      }
 
       user = userFromJson(jsonEncode(apiResponse.data));
       await LocalStorage.setToken(user!.accessToken).then((val) {
