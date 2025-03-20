@@ -6,15 +6,15 @@ String dbDir                = '${baseDir}data/';
 
 const appPort             = 4809;
 
-// String initialUsername      = 'aws@local.my';
-// String initialPassword      = '1';
-// String initialServerurl     = 'https://kocek.pocketdata.com.my';
-// String initialSyncDirectory = 'C:\\Users\\user\\Desktop\\watchaws';
+String initialUsername      = 'aws@local.my';
+String initialPassword      = '1';
+String initialServerurl     = 'https://kocek.pocketdata.com.my';
+String initialSyncDirectory = 'C:\\Users\\user\\Desktop\\watchaws';
 
-String initialUsername      = '';
-String initialPassword      = '';
-String initialServerurl     = '';
-String initialSyncDirectory = '';
+// String initialUsername      = '';
+// String initialPassword      = '';
+// String initialServerurl     = '';
+// String initialSyncDirectory = '';
 
 String appLogo              = 'assets/logo.png';
 

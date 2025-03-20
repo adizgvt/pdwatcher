@@ -96,10 +96,10 @@ abstract class SyncService {
   static Future<bool> syncRemoteToLocal(context) async {
 
     //wait until sync finish first;
-    if(Provider.of<SyncProvider>(context, listen: false).isSyncing){
-      Log.warning('Currently syncing... wait until finish');
-      return false;
-    }
+    // if(Provider.of<SyncProvider>(context, listen: false).isSyncing){
+    //   Log.warning('Currently syncing download... wait until finish');
+    //   return false;
+    // }
 
     //check internet connection
     final connectivityResult = await (Connectivity().checkConnectivity());
@@ -119,6 +119,10 @@ abstract class SyncService {
         Log.error('Unknown connection status');
         return false;
     }
+
+    // Provider.of<SyncProvider>(context, listen: false).isSyncing = true;
+    // Log.info('Sync Local -> Remote started');
+    // Provider.of<SyncProvider>(context, listen: false).updateUI();
 
     await Provider.of<SyncProvider>(context, listen: false).getChanges(context);
 
@@ -247,9 +251,9 @@ abstract class SyncService {
             Provider.of<SyncProvider>(context, listen: false).updateUI();
 
             //move to local path
-            File('$tempDir$tempName').renameSync(localPath);
+            ///TEST DIFFERENT DISK
+            FileService.moveFile('$tempDir$tempName', localPath);
 
-            //add to db
             await Future.delayed(const Duration(seconds: 3));
 
             await databaseService.updateRemoteByPath(
@@ -258,7 +262,9 @@ abstract class SyncService {
                 remoteId        : file.remotefileId,
                 remoteTimeStamp : file.mtime
             );
+            //File('$tempDir$tempName').renameSync(localPath);
 
+            //add to db
 
           }else{
 
@@ -276,7 +282,9 @@ abstract class SyncService {
               //if local not modified, remote renamed, timestamp don't change IDK why
               if(localDBData[0].localModified == 0 && localDBData[0].localPath != localPath){
 
-                File(localDBData[0].localPath).renameSync(localPath);
+                ///TEST DIFFERENT DISK
+                FileService.moveFile(localDBData[0].localPath, localPath);
+                //File(localDBData[0].localPath).renameSync(localPath);
                 Log.verbose('Renamed File for ${file.path}');
               }
 
@@ -322,7 +330,9 @@ abstract class SyncService {
               //rename local file
               String renamed = await localDBData[0].localPath.toString().renameWithTimestamp();
 
-              File(localDBData[0].localPath).renameSync(renamed);
+              ///TEST DIFFERENT DISK
+              FileService.moveFile(localDBData[0].localPath, renamed);
+              //File(localDBData[0].localPath).renameSync(renamed);
 
               await Future.delayed(const Duration(seconds: 3));
 
@@ -333,7 +343,9 @@ abstract class SyncService {
             }
 
             //move downloaded temp to replace new file
-            File('$tempDir$tempName').renameSync(localPath);
+            ///TEST DIFFERENT DISK
+            FileService.moveFile('$tempDir$tempName', localPath);
+            //File('$tempDir$tempName').renameSync(localPath);
 
             await Future.delayed(const Duration(seconds: 3));
 
@@ -421,6 +433,10 @@ abstract class SyncService {
 
     }
 
+    // Provider.of<SyncProvider>(context, listen: false).isSyncing = false;
+    // Log.info('Sync download finished');
+    // Provider.of<SyncProvider>(context, listen: false).updateUI();
+
     return true;
 
   }
@@ -428,10 +444,10 @@ abstract class SyncService {
   static syncLocalToRemote(context) async {
 
     //wait until sync finish first;
-    if(Provider.of<SyncProvider>(context, listen: false).isSyncing){
-      Log.warning('Currently syncing... wait until finish');
-      return;
-    }
+    // if(Provider.of<SyncProvider>(context, listen: false).isSyncing){
+    //   Log.warning('Currently syncing... wait until finish');
+    //   return;
+    // }
 
     //check internet connection
     // final connectivityResult = await (Connectivity().checkConnectivity());
@@ -452,9 +468,9 @@ abstract class SyncService {
     // }
     
 
-    Provider.of<SyncProvider>(context, listen: false).isSyncing = true;
-    Log.info('Sync Local -> Remote started');
-    Provider.of<SyncProvider>(context, listen: false).updateUI();
+    // Provider.of<SyncProvider>(context, listen: false).isSyncingUp = true;
+    // Log.info('Sync Local -> Remote started');
+    // Provider.of<SyncProvider>(context, listen: false).updateUI();
 
     await syncLocalFileFolderWithLocalDb();
     await _uploadModifiedFoldersAndFiles(context);
@@ -464,9 +480,9 @@ abstract class SyncService {
     await _deleteFoldersAndFiles(context);
 
 
-    Provider.of<SyncProvider>(context, listen: false).isSyncing = false;
-    Log.info('Sync finished');
-    Provider.of<SyncProvider>(context, listen: false).updateUI();
+    // Provider.of<SyncProvider>(context, listen: false).isSyncing = false;
+    // Log.info('Sync upload finished');
+    // Provider.of<SyncProvider>(context, listen: false).updateUI();
 
   }
 
@@ -1010,9 +1026,9 @@ abstract class SyncService {
       );
 
       if(apiResponse.statusCode == 200) {
-        
+
         final data = jsonDecode(jsonEncode(apiResponse.data));
-        
+
         databaseService.updateRemoteByPath(
             localPath       : folder.localPath,
             type            : FileType.directory,
@@ -1026,155 +1042,145 @@ abstract class SyncService {
 
     for (var file in newFiles) {
 
-      //check if exist or not
-      bool exists = await File(file.localPath).exists();
-
       int index = newFiles.indexOf(file);
 
-      if (!exists) {
+      try {
 
-        String errorMessage = 'File ${file.localPath} does not exist. Skipping';
+        //check if exist or not
+        bool exists = await File(file.localPath).exists();
+
+
+
+        if (!exists) {
+
+          String errorMessage = 'File ${file.localPath} does not exist. Skipping';
+
+          Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+            syncType  : SyncType.newFile,
+            index     : index,
+            status    : SyncStatus.failed,
+            message   : errorMessage,
+          );
+
+          Log.info(Provider.of<SyncProvider>(context, listen: false).newFiles[index].toString());
+          continue; // Skip to the next iteration
+
+        }
+
+        int fileSize = await File(file.localPath).length();
+
+        if(fileSize == 0){
+
+          String errorMessage = 'File ${file.localPath} is empty. Skipping';
+
+          Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+            syncType  : SyncType.newFile,
+            index     : index,
+            status    : SyncStatus.failed,
+            message   : errorMessage,
+          );
+
+          Log.warning(errorMessage);
+
+          continue;
+        }
 
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
           syncType  : SyncType.newFile,
           index     : index,
-          status    : SyncStatus.failed,
-          message   : errorMessage,
+          status    : SyncStatus.syncing,
         );
 
-        Log.info(Provider.of<SyncProvider>(context, listen: false).newFiles[index].toString());
-        continue; // Skip to the next iteration
+        ApiResponse apiResponse = await apiService(
+            serviceMethod   : ServiceMethod.post,
+            path            : '/api/getChanges'
+        );
 
-      }
+        if(apiResponse.statusCode != 200){
+          Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+              syncType  : SyncType.newFile,
+              index     : index,
+              status    : SyncStatus.failed,
+              message   : 'Fail to call api getChanges'
+          );
+          continue;
+        }
 
-      int fileSize = await File(file.localPath).length();
+        Change change = changeFromJson(jsonEncode(apiResponse.data));
 
-      if(fileSize == 0){
+        String fileName   = file.localPath.split('\\').last;
+        String localPath  = file.localPath.replaceLast(fileName, '').removeTrailingSlash();
+        String path       = localPath.replaceFirst(watchedDir, 'files/').replaceBackSlashWithSlash().removeDuplicateSlash();
 
-        String errorMessage = 'File ${file.localPath} is empty. Skipping';
+        print(fileName);
+        print(localPath);
+        print(path);
+
+        int? parentId = change.files.firstWhereOrNull((element) => element.path == path)?.remotefileId;
+
+        //if parent not found in first try, find where if eg path == files/eg . when we replace (files/) -> we left with (eg) only without any /. then the parents is root
+        //fallback
+        parentId ??= change.files.firstWhereOrNull((element) => !element.path.replaceFirst('files/', '').contains('/'))?.parent;
+
+        if(parentId == null && path == 'files/'){
+          parentId = Provider.of<UserProvider>(context, listen: false).user!.rootParentId;
+        }
+
+        if(parentId == null){
+          print('Parent folder not found');
+          Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+              syncType  : SyncType.newFile,
+              index     : index,
+              status    : SyncStatus.failed,
+              message   : 'Parent Folder not found'
+          );
+          continue;
+        }
+
+        Map<String, dynamic>? result = await FileService.upload(
+            filePath: file.localPath,
+            parentId: parentId
+        );
+
+        print('result $result');
+
+        if(result == null){
+          Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+              syncType  : SyncType.newFile,
+              index     : index,
+              status    : SyncStatus.failed,
+              message   : 'API error'
+          );
+          continue;
+        }
+
+        databaseService.updateRemoteByPath(
+            localPath       : file.localPath,
+            type            : FileType.file,
+            localModified   : 0,
+            remoteId        : result['id'],
+            remoteTimeStamp : result['timestamp']
+        );
 
         Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
           syncType  : SyncType.newFile,
           index     : index,
-          status    : SyncStatus.failed,
-          message   : errorMessage,
+          status    : SyncStatus.success,
         );
 
-        Log.warning(errorMessage);
+      } catch (e,s) {
 
+        Log.error(e.toString());
+        Log.error(s.toString());
+        Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
+            syncType    : SyncType.newFile,
+            index       : index,
+            status      : SyncStatus.failed,
+            message     : s.toString()
+        );
         continue;
+
       }
-
-      Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-        syncType  : SyncType.newFile,
-        index     : index,
-        status    : SyncStatus.syncing,
-      );
-      
-      ApiResponse apiResponse = await apiService(
-          serviceMethod   : ServiceMethod.post,
-          path            : '/api/getChanges'
-      );
-      
-      if(apiResponse.statusCode != 200){
-        Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType  : SyncType.newFile,
-          index     : index,
-          status    : SyncStatus.failed,
-          message   : 'Fail to call api getChanges'
-        );
-        continue;
-      }
-      
-      Change change = changeFromJson(jsonEncode(apiResponse.data));
-
-      String fileName   = file.localPath.split('\\').last;
-      String localPath  = file.localPath.replaceLast(fileName, '').removeTrailingSlash();
-      String path       = localPath.replaceFirst(watchedDir, 'files/').replaceBackSlashWithSlash().removeDuplicateSlash();
-
-      print(fileName);
-      print(localPath);
-      print(path);
-
-      int? parentId = change.files.firstWhereOrNull((element) => element.path == path)?.remotefileId;
-
-      //if parent not found in first try, find where if eg path == files/eg . when we replace (files/) -> we left with (eg) only without any /. then the parents is root
-      //fallback
-      parentId ??= change.files.firstWhereOrNull((element) => !element.path.replaceFirst('files/', '').contains('/'))?.parent;
-
-      if(parentId == null && path == 'files/'){
-        parentId = Provider.of<UserProvider>(context, listen: false).user!.rootParentId;
-      }
-
-      if(parentId == null){
-        print('Parent folder not found');
-        Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType  : SyncType.newFile,
-          index     : index,
-          status    : SyncStatus.failed,
-          message   : 'Parent Folder not found'
-        );
-        continue;
-      }
-
-      Map<String, dynamic>? result = await FileService.upload(
-          filePath: file.localPath,
-          parentId: parentId
-      );
-
-      print('result $result');
-
-      if(result == null){
-        Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-          syncType  : SyncType.newFile,
-          index     : index,
-          status    : SyncStatus.failed,
-          message   : 'API error'
-        );
-        continue;
-      }
-
-      databaseService.updateRemoteByPath(
-          localPath       : file.localPath,
-          type            : FileType.file,
-          localModified   : 0,
-          remoteId        : result['id'],
-          remoteTimeStamp : result['timestamp']
-      );
-
-      // final List<FileSystemEntity> chunks = await Directory('$tempDir$fileUuid')
-      //     .list(recursive: false, followLinks: false)
-      //     .toList();
-      //
-      // int currentChunk = 0;
-      // double lastUpdatePercent = 0;
-      //
-      // for(var chunk in chunks){
-      //
-      //   await Future.delayed(Duration(milliseconds: 100));
-      //
-      //   double currentPercent = ((currentChunk/chunks.length)*100);
-      //
-      //   if(currentPercent - lastUpdatePercent > 5 || currentPercent == 100){
-      //     Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-      //       syncType: SyncType.newFile,
-      //       index: index,
-      //       status: SyncStatus.syncing,
-      //       progress: currentPercent
-      //     );
-      //     lastUpdatePercent = currentPercent;
-      //   }
-      //
-      //   Log.verbose('Upload chunk ${currentPercent.toInt()}%');
-      //
-      //   currentChunk++;
-      // }
-
-      Provider.of<SyncProvider>(context, listen: false).updateSyncStatus(
-        syncType  : SyncType.newFile,
-        index     : index,
-        status    : SyncStatus.success,
-      );
 
     }
 

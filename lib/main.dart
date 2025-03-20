@@ -7,10 +7,9 @@ import 'package:pdwatcher/providers/file_provider.dart';
 import 'package:pdwatcher/providers/sync_provider.dart';
 import 'package:pdwatcher/providers/user_provider.dart';
 import 'package:pdwatcher/screens/loading_screen.dart';
-import 'package:pdwatcher/services/instance_checker_service.dart';
 import 'package:pdwatcher/services/log_service.dart';
-import 'package:pdwatcher/utils/consts.dart';
 import 'package:pdwatcher/widgets/another_instance_running_warning.dart';
+import 'package:pdwatcher/widgets/unsupported_platform_warning_dialog.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -22,8 +21,8 @@ import 'package:window_manager/window_manager.dart';
 void main() async {
 
     if (!Platform.isWindows) {
-      Log.error("This application only runs on Windows.");
-      exit(1);
+      showUnsupportedPlatformWarningDialog();
+      return;
     }
 
     await WidgetsFlutterBinding.ensureInitialized();

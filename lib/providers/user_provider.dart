@@ -60,7 +60,10 @@ class UserProvider extends ChangeNotifier {
     String? oldDirectoryPath,
   }) async {
 
-    context.loaderOverlay.show();
+    if(context.mounted){
+      context.loaderOverlay.show();
+    }
+
 
     ApiResponse apiResponse = await apiService(
         data: {
@@ -72,7 +75,9 @@ class UserProvider extends ChangeNotifier {
         path: '/api/login'
     );
 
-    context.loaderOverlay.hide();
+    if(context.mounted){
+      context.loaderOverlay.hide();
+    }
 
     if(apiResponse.statusCode == 200){
 

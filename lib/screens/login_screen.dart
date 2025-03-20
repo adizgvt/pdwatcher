@@ -235,18 +235,7 @@ class _LoginScreenState extends State<LoginScreen> with TrayListener{
                                     Button(
                                       child: const Text('Confirm'),
                                       onPressed: () async {
-                                        Navigator.of(context).pop();
-                                        Provider.of<UserProvider>(context, listen: false).login(
-                                          context             : context,
-                                          email               : emailController.text.toLowerCase().trim(),
-                                          password            : passwordController.text.trim(),
-                                          serverUrl           : serverUrlController.text.trim(),
-                                          syncDirectory       : syncDirectory.text.trim(),
-                                          deleteOldDirectory  : true,
-                                          oldDirectoryPath    : previousDirectory,
-                                        );
-
-                                        // Delete file here
+                                        Navigator.pop(context,'login');
                                       },
                                     ),
                                     FilledButton(
@@ -255,12 +244,23 @@ class _LoginScreenState extends State<LoginScreen> with TrayListener{
                                         Navigator.of(context).pop();
                                         syncDirectory.text = previousDirectory!;
                                         setState(() {});
-
                                       },
                                     ),
                                   ],
                                 ),
-                              );
+                              ).then((val){
+                                if(val == 'login'){
+                                  Provider.of<UserProvider>(context, listen: false).login(
+                                    context             : context,
+                                    email               : emailController.text.toLowerCase().trim(),
+                                    password            : passwordController.text.trim(),
+                                    serverUrl           : serverUrlController.text.trim(),
+                                    syncDirectory       : syncDirectory.text.trim(),
+                                    deleteOldDirectory  : true,
+                                    oldDirectoryPath    : previousDirectory,
+                                  );
+                                }
+                              });
                             }else {
                               Provider.of<UserProvider>(context, listen: false).login(
                                 context       : context,

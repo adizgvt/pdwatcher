@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:pdwatcher/services/local_storage_service.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -19,6 +20,13 @@ abstract class TrayService {
         break;
       case 'exit_app':
         windowManager.show();
+
+        String? watchedDirectory = await LocalStorage.getWatchedDirectory();
+
+        //not logged in
+        if(watchedDirectory == null){
+          exit(0);
+        }
 
         await showDialog<String>(
           context: context,

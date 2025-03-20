@@ -22,6 +22,8 @@ class SyncProvider extends ChangeNotifier {
   bool isSyncPaused = false;
 
   bool isSyncing = false;
+  bool isSyncingUp = false;
+  bool isSyncingDown = false;
 
   bool isOffline = false;
 

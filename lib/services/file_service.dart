@@ -140,7 +140,7 @@ class FileService {
       filePath: filePath,
       maxChunkSize: 100000,
       path: '/api/upload',
-      onUploadProgress: (progress) => print(progress),
+      onUploadProgress: (progress) => Log.verbose('Upload Progress: $progress'),
     );
 
     if(response == null){
@@ -179,7 +179,7 @@ class FileService {
     final token     = await LocalStorage.getToken() ?? '';
     final fileName  = filePath.split('\\').last;
 
-    const int chunkSize = 1024 * 1024;
+    const int chunkSize = 1024 * 1024 * 10; //10MB
     final String uuid = const Uuid().v1();
 
     final File file       = File(filePath);
@@ -209,7 +209,7 @@ class FileService {
       final response      = await request.send();
       final responseBody  = await http.Response.fromStream(response);
 
-      print('chunk ${i+1}/$totalChunks');
+      Log.verbose('Uploading chunk ${i+1}/$totalChunks');
       print('Response Status Code : ${responseBody.statusCode}');
       print('Response Body        : ${responseBody.body}');
 
@@ -222,13 +222,15 @@ class FileService {
         try {
           final uploadResponse = jsonDecode(responseBody.body) as Map<String, dynamic>;
 
+          //print(uploadResponse);
+
           lastResponse = {
-            'id'        : uploadResponse['data']['fileid'],
-            'timestamp' : uploadResponse['data']['mtime'],
-            'mimetype'  : uploadResponse['data']['mimetype'],
+            'id'        : uploadResponse['fileid'],
+            'timestamp' : uploadResponse['mtime'],
+            'mimetype'  : uploadResponse['mimetype'],
           };
-        } catch (e) {
-          print('Failed to decode response: $e');
+        } catch (e,s) {
+          print('Failed to decode response: $e ${s}');
           return null;
         }
       } else {
@@ -237,6 +239,30 @@ class FileService {
     }
 
     return lastResponse; // Return the response of the last chunk
+  }
+
+  static void moveFile(String sourcePath, String destinationPath) {
+
+    try {
+      File sourceFile = File(sourcePath);
+      File destinationFile = File(destinationPath);
+
+      // Open file streams and copy data directly
+      var inputStream = sourceFile.openSync();
+      var outputStream = destinationFile.openSync(mode: FileMode.write);
+
+      List<int> buffer = List<int>.filled(1024 * 1024, 0); // 1MB buffer
+      int bytesRead;
+      while ((bytesRead = inputStream.readIntoSync(buffer)) > 0) {
+        outputStream.writeFromSync(buffer, 0, bytesRead);
+      }
+
+      inputStream.closeSync();
+      outputStream.closeSync();
+
+    } catch (e) {
+      print('Error moving file: $e');
+    }
   }
 
 }
