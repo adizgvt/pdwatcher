@@ -7,6 +7,7 @@
 #include "generated_plugin_registrant.h"
 
 #include <connectivity_plus_windows/connectivity_plus_windows_plugin.h>
+#include <desktop_updater/desktop_updater_plugin_c_api.h>
 #include <platform_device_id_windows/platform_device_id_windows_plugin.h>
 #include <tray_manager/tray_manager_plugin.h>
 #include <window_manager/window_manager_plugin.h>
@@ -14,6 +15,8 @@
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   ConnectivityPlusWindowsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("ConnectivityPlusWindowsPlugin"));
+  DesktopUpdaterPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("DesktopUpdaterPluginCApi"));
   PlatformDeviceIdWindowsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PlatformDeviceIdWindowsPlugin"));
   TrayManagerPluginRegisterWithRegistrar(

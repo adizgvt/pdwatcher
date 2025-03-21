@@ -17,6 +17,7 @@ String initialSyncDirectory = 'C:\\Users\\user\\Desktop\\watchaws';
 // String initialSyncDirectory = '';
 
 String appLogo              = 'assets/logo.png';
+String updateUrl            = "http://192.168.68.114/app-archive.json";
 
 bool showAllMenu           = false;
 String adminPassword       = '4809';

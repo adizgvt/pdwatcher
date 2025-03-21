@@ -9,13 +9,19 @@ void main() async {
   ///build must not showAllMenu in const & use chunk upload
   ///flutter build windows --release
   ///ensure sqlite3.dll is in release folder
+  ///
+
+  String version = '1.0.0';
+  String shortVersion = '1';
+
+  bool useBuildDir = true;
 
   final buildSetup = InnoSetup(
-    name            : const InnoSetupName('pdsetup'),
+    name            : InnoSetupName('pdsetup_v$version+$shortVersion'),
 
     app             : InnoSetupApp(
                         name        : 'PocketDataClient',
-                        version     : Version.parse('0.1.0'),
+                        version     : Version.parse(version),
                         publisher   : 'POCKET DATA (M) SDN BHD',
                         urls        : InnoSetupAppUrls(
                                         homeUrl       : Uri.parse('https://example.com/home'),
@@ -23,13 +29,13 @@ void main() async {
                       ),
 
     files           : InnoSetupFiles(
-                        executable    : File('build\\windows\\x64\\runner\\Release\\pdwatcher.exe'),
-                        location      : Directory('build\\windows\\x64\\runner\\Release'),
+                        executable    : File(useBuildDir ? 'build\\windows\\x64\\runner\\Release\\pdwatcher.exe' :'dist\\$shortVersion\\$version+$shortVersion-windows\\pdwatcher.exe'),
+                        location      : Directory(useBuildDir ? 'build\\windows\\x64\\runner\\Release' : 'dist\\$shortVersion\\$version+$shortVersion-windows'),
                       ),
 
     location        : InnoSetupInstallerDirectory(Directory('build\\windows')),
     icon            : InnoSetupIcon(File('assets\\pd.ico')),
-    runAfterInstall : false,
+    runAfterInstall : true,
     compression     : InnoSetupCompressions().lzma2(InnoSetupCompressionLevel.ultra64,),
     languages       : [InnoSetupLanguages().english],
   );
@@ -61,18 +67,30 @@ ${buildSetup.runAfterInstall ? InnoSetupRunBuilder(buildSetup.app) : ''}
   File('build/innosetup.iss').writeAsStringSync('$iss');
 
   String filePath = "build/innosetup.iss";
-
+//----------------------------------------------------------------------------
   String content = await File(filePath).readAsString();
-
-  // Regex pattern to replace 'PocketDataClient' only in Filename
   String updatedContent = content.replaceAllMapped(
       RegExp(r'(Filename:\s*"\{app\}\\)PocketDataClient'),
           (match) => '${match.group(1)}pdwatcher.exe'
   );
-
   await File(filePath).writeAsString(updatedContent);
-
+  //----------------------------------------------------------------------------
+  String content2 = await File(filePath).readAsString();
+  String updatedContent2 = content2.replaceAllMapped(
+    RegExp(r'(DefaultDirName="\{)autopf(\}\\PocketDataClient")'),
+        (match) => '${match.group(1)}localappdata${match.group(2)}\nPrivilegesRequired=lowest',
+  );
+  await File(filePath).writeAsString(updatedContent2);
+  //----------------------------------------------------------------------------
+  String content3 = await File(filePath).readAsString();
+  String updatedContent3 = content3.replaceAllMapped(
+    RegExp(r'Name: "\{(auto(programs|desktop))\}'),
+        (match) => 'Name: "{user${match.group(2)}}',
+  );
+  await File(filePath).writeAsString(updatedContent3);
+  //----------------------------------------------------------------------------
   print("File updated successfully!");
+
 
   await Process.start(
     'C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe',

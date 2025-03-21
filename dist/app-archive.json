@@ -1,0 +1,69 @@
+{
+  "appName": "POCKET DATA SYNC DESKTOP CLIENT",
+  "descriptipn": "This is my app descriptipn",
+  "items": [
+    {
+      "version": "1.0.1",
+      "shortVersion": 2,
+      "changes": [
+        {
+          "type": "chore",
+          "message": "Fix bug #1"
+        },
+        {
+          "type": "feat",
+          "message": "Add new feature #1"
+        },
+        {
+          "message": "Add new feature #2"
+        }
+      ],
+      "date": "2025-01-10",
+      "mandatory": true,
+      "url": "http://localhost/2/1.0.1+2-windows",
+      "platform": "windows"
+    },
+    {
+      "version": "1.0.2",
+      "shortVersion": 3,
+      "changes": [
+        {
+          "type": "chore",
+          "message": "Fix bug #1"
+        },
+        {
+          "type": "feat",
+          "message": "Add new feature #1"
+        },
+        {
+          "message": "Add new feature #2"
+        }
+      ],
+      "date": "2025-01-10",
+      "mandatory": true,
+      "url": "http://localhost/3/1.0.2+3-windows",
+      "platform": "windows"
+    },
+    {
+      "version": "0.1.7",
+      "shortVersion": 8,
+      "changes": [
+        {
+          "type": "chore",
+          "message": "Fix bug #1"
+        },
+        {
+          "type": "feat",
+          "message": "Add new feature #1"
+        },
+        {
+          "message": "Add new feature #2"
+        }
+      ],
+      "date": "2025-01-10",
+      "mandatory": true,
+      "url": "https://www.yourwebsite.com/archive/desktop_updater/0.1.6%2B7-macos",
+    "platform": "macos"
+    }
+  ]
+}

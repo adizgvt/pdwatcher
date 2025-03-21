@@ -10,6 +10,7 @@ import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
+import '../providers/package_info_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/log_service.dart';
 import '../services/tray_service.dart';
@@ -276,6 +277,11 @@ class _LoginScreenState extends State<LoginScreen> with TrayListener{
                             }
                         )
                       ],
+                    ),
+                    SizedBox(height: 10,),
+                    Text(
+                        '(${Provider.of<PackageInfoProvider>(context).versionCode}+${Provider.of<PackageInfoProvider>(context).versionNumber})',
+                      style: TextStyle(fontSize: 10),
                     )
                   ],
                 ),

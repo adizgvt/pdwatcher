@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pdwatcher/extensions.dart';
+import 'package:pdwatcher/providers/package_info_provider.dart';
 import 'package:pdwatcher/screens/login_screen.dart';
 import 'package:pdwatcher/services/tray_service.dart';
 import 'package:pdwatcher/utils/enums.dart';
@@ -74,8 +75,13 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
     _initSqlDB();
     _startWatcher();
     _queryFilesAndFolders();
+    _getVersion();
 
     super.initState();
+  }
+
+  _getVersion(){
+    Provider.of<PackageInfoProvider>(context, listen: false).getDetails();
   }
 
   _checkDirExist() async {
@@ -266,6 +272,10 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
     TrayService.onTrayMenuItemClick(menuItem, context);
   }
 
+  getPackageInfo(){
+
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -279,8 +289,9 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
               Row(
                 children: [
                   Image.asset('assets/pd.ico', height: 15,),
+                  Text(''),
                   SizedBox(width: 10,),
-                  Text('Pocket Data Sync Client'),
+                  Text('Pocket Data Sync Client (${Provider.of<PackageInfoProvider>(context).versionCode}+${Provider.of<PackageInfoProvider>(context).versionNumber})'),
                   Expanded(
                     child: GestureDetector(
                         child: Container(
@@ -605,19 +616,13 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
                                       // Build each item
                                       return listTemplate(
                                           context: context,
-                                          id: files[index]['id'].toString(),
-                                          localPath: files[index]['local_path']
-                                              .toString(),
-                                          localTimestamp: files[index]['local_timestamp']
-                                              .toString(),
-                                          localModified: files[index]['local_modified']
-                                              .toString(),
-                                          remoteId: files[index]['remote_id']
-                                              .toString(),
-                                          remoteTimestamp: files[index]['remote_timestamp']
-                                              .toString(),
-                                          toDelete: files[index]['to_delete']
-                                          .toString()
+                                          id              : files[index]['id'].toString(),
+                                          localPath       : files[index]['local_path'].toString(),
+                                          localTimestamp  : files[index]['local_timestamp'].toString(),
+                                          localModified   : files[index]['local_modified'].toString(),
+                                          remoteId        : files[index]['remote_id'].toString(),
+                                          remoteTimestamp : files[index]['remote_timestamp'].toString(),
+                                          toDelete        : files[index]['to_delete'].toString()
                                       );
                                     },
                                   ),
@@ -719,9 +724,9 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
                       Expanded(child: Container(
                         child: changeListTemplate(context, changeType: FileChangeEnum.filesDeleted),
                       ),),
-                      Expanded(child: Container(
-                        child: changeListTemplate(context, changeType: FileChangeEnum.shareFiles),
-                      ),)
+                      // Expanded(child: Container(
+                      //   child: changeListTemplate(context, changeType: FileChangeEnum.shareFiles),
+                      // ),)
                     ],
                   )
                 )
