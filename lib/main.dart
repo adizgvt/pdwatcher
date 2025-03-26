@@ -1,8 +1,6 @@
 import 'dart:convert';
-
 import 'package:desktop_updater/desktop_updater.dart';
 import 'package:desktop_updater/updater_controller.dart';
-import 'package:desktop_updater/widget/update_widget.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_single_instance/flutter_single_instance.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
@@ -11,13 +9,13 @@ import 'dart:io';
 import 'package:pdwatcher/providers/file_provider.dart';
 import 'package:pdwatcher/providers/package_info_provider.dart';
 import 'package:pdwatcher/providers/sync_provider.dart';
+import 'package:pdwatcher/providers/task_provider.dart';
 import 'package:pdwatcher/providers/user_provider.dart';
 import 'package:pdwatcher/screens/loading_screen.dart';
 import 'package:pdwatcher/screens/update_screen.dart';
 import 'package:pdwatcher/services/log_service.dart';
 import 'package:pdwatcher/utils/consts.dart';
 import 'package:pdwatcher/widgets/another_instance_running_warning.dart';
-import 'package:pdwatcher/widgets/appbar_template.dart';
 import 'package:pdwatcher/widgets/unsupported_platform_warning_dialog.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
 import 'package:provider/provider.dart';
@@ -121,6 +119,8 @@ void main() async {
       runApp(MyApp());
     });
 
+    //runApp(MyApp());
+
 
 
 
@@ -146,6 +146,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => FileProvider()),
         ChangeNotifierProvider(create: (_) => PackageInfoProvider(), lazy: false,),
+        ChangeNotifierProvider(create: (_) => TaskProvider(), lazy: false,),
         //ChangeNotifierProvider(create: (_) => ThemeProvider() ,lazy: false,),
       ],
       child: wrapFluent(child: const LoadingScreen())

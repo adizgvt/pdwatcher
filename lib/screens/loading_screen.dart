@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:custom_platform_device_id/platform_device_id.dart';
-import 'package:desktop_updater/updater_controller.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:pdwatcher/providers/package_info_provider.dart';
 import 'package:pdwatcher/services/drive_service.dart';
@@ -26,8 +25,6 @@ class LoadingScreen extends StatefulWidget {
 class _LoadingScreenState extends State<LoadingScreen> with TrayListener{
 
   bool isOffline = false;
-
-  late DesktopUpdaterController _desktopUpdaterController;
 
   @override
   void initState() {

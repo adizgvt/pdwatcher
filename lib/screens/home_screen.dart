@@ -14,7 +14,9 @@ import 'package:pdwatcher/utils/consts.dart';
 import 'dart:io';
 import 'package:pdwatcher/utils/types.dart';
 import 'package:pdwatcher/widgets/change_list_template.dart';
+import 'package:pdwatcher/widgets/current_task.dart';
 import 'package:pdwatcher/widgets/list_template.dart';
+import 'package:pdwatcher/widgets/log_history.dart';
 import 'package:pdwatcher/widgets/spinning_icon.dart';
 import 'package:pdwatcher/widgets/sync_list_template.dart';
 import 'package:pdwatcher/widgets/wrapper_widget.dart';
@@ -38,7 +40,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with TrayListener{
 
-  int topIndex = 3;
+  int topIndex = 2;
 
   PaneDisplayMode displayMode = PaneDisplayMode.open;
 
@@ -64,7 +66,7 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
   Timer? timer;
 
   Timer? syncTimer;
-  
+
   TextEditingController adminPanelPasswordController = TextEditingController();
 
 
@@ -212,25 +214,25 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
 
     });
 
-    syncTimer = Timer.periodic(const Duration(seconds: 10), (Timer timer) async {
-
-      await Provider.of<SyncProvider>(context, listen: false).getUsage();
-
-      if(Provider.of<SyncProvider>(context, listen: false).isSyncing){
-        Log.verbose('--IS SYNCING--');
-        return;
-      }
-
-      Provider.of<SyncProvider>(context, listen: false).isSyncing = true;
-      Provider.of<SyncProvider>(context, listen: false).updateUI();
-
-      await SyncService.syncRemoteToLocal(context);
-      await SyncService.syncLocalToRemote(context);
-
-      Provider.of<SyncProvider>(context, listen: false).isSyncing = false;
-      Provider.of<SyncProvider>(context, listen: false).updateUI();
-
-    });
+    // syncTimer = Timer.periodic(const Duration(seconds: 10), (Timer timer) async {
+    //
+    //   await Provider.of<SyncProvider>(context, listen: false).getUsage();
+    //
+    //   if(Provider.of<SyncProvider>(context, listen: false).isSyncing){
+    //     Log.verbose('--IS SYNCING--');
+    //     return;
+    //   }
+    //
+    //   Provider.of<SyncProvider>(context, listen: false).isSyncing = true;
+    //   Provider.of<SyncProvider>(context, listen: false).updateUI();
+    //
+    //   await SyncService.syncRemoteToLocal(context);
+    //   await SyncService.syncLocalToRemote(context);
+    //
+    //   Provider.of<SyncProvider>(context, listen: false).isSyncing = false;
+    //   Provider.of<SyncProvider>(context, listen: false).updateUI();
+    //
+    // });
   }
 
   _queryFilesAndFolders() async {
@@ -315,8 +317,8 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
                             content: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
-                                  'Please enter admin password to show/hide admin panel',
+                                Text(
+                                  'Please enter admin password to ${showAllMenu ? 'hide' : 'show'} admin panel',
                                 ),
                                 SizedBox(height: 10,),
                                 PasswordBox(
@@ -481,7 +483,8 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
                           final result = await FileService.uploadChunk(
                             //filePath: 'C:\\Users\\user\\Desktop\\watch\\yo\\yi\\Screenshot 2024-11-26 134729.png',
                               filePath: 'C:\\Users\\user\\Downloads\\JetBrains.dotPeek.2024.3.3.web.exe',
-                              parentId: 914
+                              parentId: 914,
+                              context : context
                           );
                         }
                     ),
@@ -502,6 +505,7 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
           },
           displayMode: PaneDisplayMode.compact,
           items: [
+            if(showAllMenu)
             PaneItem(
                 icon: Icon(FluentIcons.database),
                 title: Text('Home'),
@@ -592,92 +596,139 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
                           Expanded(
                             child: Column(
                               children: [
-                                SizedBox(height: 10,),
-                                Text('FILES', style: FluentTheme.of(context).typography.caption,),
-                                Padding(
-                                  padding: EdgeInsets.all(10),
-                                  child: Row(
-                                    children: [
-                                      Expanded(child: Text('id', style: FluentTheme.of(context).typography.caption),),
-                                      Expanded(child: Text('local_path', style: FluentTheme.of(context).typography.caption),),
-                                      Expanded(child: Text('local_timestamp', style: FluentTheme.of(context).typography.caption),),
-                                      Expanded(child: Text('local_modified', style: FluentTheme.of(context).typography.caption),),
-                                      Expanded(child: Text('remote_id', style: FluentTheme.of(context).typography.caption),),
-                                      Expanded(child: Text('remote_timestamp', style: FluentTheme.of(context).typography.caption),),
-                                      Expanded(child: Text('to_delete', style: FluentTheme.of(context).typography.caption),),
-                                    ],
+                                // SizedBox(height: 10,),
+                                // Row(
+                                //   mainAxisAlignment: MainAxisAlignment.start,
+                                //   children: [
+                                //     SizedBox(width: 10,),
+                                //     Text('LOCAL DATABASE RECORD', style: FluentTheme.of(context).typography.bodyStrong,),
+                                //   ],
+                                // ),
+                                // SizedBox(height: 5,),
+                                // Divider(),
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white, // White background
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: [
+                                        // BoxShadow(
+                                        //   color: Colors.black.withOpacity(0.1),
+                                        //   blurRadius: 5,
+                                        //   spreadRadius: 2,
+                                        // ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(FluentIcons.document, size: 16, color: Colors.blue),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'FILES',
+                                              style: FluentTheme.of(context).typography.caption?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Expanded(
+                                          child: CustomScrollView(
+                                            slivers: [
+                                              SliverList(
+                                                delegate: SliverChildBuilderDelegate(
+                                                      (context, index) {
+                                                    final displayTitle = index == 0;
+                                                    return listTemplate(
+                                                      context: context,
+                                                      id: files[index]['id'].toString(),
+                                                      localPath: files[index]['local_path'].toString(),
+                                                      localTimestamp: files[index]['local_timestamp'].toString(),
+                                                      localModified: files[index]['local_modified'].toString(),
+                                                      remoteId: files[index]['remote_id'].toString(),
+                                                      remoteTimestamp: files[index]['remote_timestamp'].toString(),
+                                                      toDelete: files[index]['to_delete'].toString(),
+                                                      showTitle: displayTitle,
+                                                    );
+                                                  },
+                                                  childCount: files.length, // Number of items in the list
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
+                                SizedBox(height: 10,),
                                 Expanded(
-                                  child: ListView.builder(
-                                    itemCount: files.length,
-                                    // Number of items in the list
-                                    itemBuilder: (context, index) {
-                                      // Build each item
-                                      return listTemplate(
-                                          context: context,
-                                          id              : files[index]['id'].toString(),
-                                          localPath       : files[index]['local_path'].toString(),
-                                          localTimestamp  : files[index]['local_timestamp'].toString(),
-                                          localModified   : files[index]['local_modified'].toString(),
-                                          remoteId        : files[index]['remote_id'].toString(),
-                                          remoteTimestamp : files[index]['remote_timestamp'].toString(),
-                                          toDelete        : files[index]['to_delete'].toString()
-                                      );
-                                    },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: [
+                                        // BoxShadow(
+                                        //   color: Colors.black.withOpacity(0.1),
+                                        //   blurRadius: 5,
+                                        //   spreadRadius: 2,
+                                        // ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(FluentIcons.folder, size: 16, color: Colors.orange),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'FOLDERS',
+                                              style: FluentTheme.of(context).typography.caption?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 5), // Space below title
+                                        Expanded(
+                                          child: CustomScrollView(
+                                            slivers: [
+                                              SliverList(
+                                                delegate: SliverChildBuilderDelegate(
+                                                      (context, index) {
+                                                    final displayTitle = index == 0;
+                                                    return listTemplate(
+                                                      context: context,
+                                                      id: folders[index]['id'].toString(),
+                                                      localPath: folders[index]['local_path'].toString(),
+                                                      localTimestamp: folders[index]['local_timestamp'].toString(),
+                                                      localModified: folders[index]['local_modified'].toString(),
+                                                      remoteId: folders[index]['remote_id'].toString(),
+                                                      remoteTimestamp: folders[index]['remote_timestamp'].toString(),
+                                                      toDelete: folders[index]['to_delete'].toString(),
+                                                      showTitle: displayTitle,
+                                                    );
+                                                  },
+                                                  childCount: folders.length,
+                                                ),
+                                              )
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                )
+                                ),
                               ],
                             ),
                           ),
-                          Expanded(
-                            child: Container(
-                                child: Column(
-                                  children: [
-                                    Text('FOLDERS', style: FluentTheme.of(context).typography.caption,),
-                                    Padding(
-                                      padding: EdgeInsets.all(10.0),
-                                      child: Row(
-                                        children: [
-                                          Expanded(child: Text('id', style: FluentTheme.of(context).typography.caption),),
-                                          Expanded(child: Text('local_path', style: FluentTheme.of(context).typography.caption),),
-                                          Expanded(child: Text('local_timestamp', style: FluentTheme.of(context).typography.caption),),
-                                          Expanded(child: Text('local_modified', style: FluentTheme.of(context).typography.caption),),
-                                          Expanded(child: Text('remote_id', style: FluentTheme.of(context).typography.caption),),
-                                          Expanded(child: Text('remote_timestamp', style: FluentTheme.of(context).typography.caption),),
-                                          Expanded(child: Text('to_delete', style: FluentTheme.of(context).typography.caption),),
-                                        ],
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: ListView.builder(
-                                        itemCount: folders.length,
-                                        // Number of items in the list
-                                        itemBuilder: (context, index) {
-                                          // Build each item
-                                          return listTemplate(
-                                              context: context,
-                                              id: folders[index]['id'].toString(),
-                                              localPath: folders[index]['local_path']
-                                                  .toString(),
-                                              localTimestamp: folders[index]['local_timestamp']
-                                                  .toString(),
-                                              localModified: folders[index]['local_modified']
-                                                  .toString(),
-                                              remoteId: folders[index]['remote_id']
-                                                  .toString(),
-                                              remoteTimestamp: folders[index]['remote_timestamp']
-                                                  .toString(),
-                                              toDelete: folders[index]['to_delete']
-                                                  .toString()
-                                          );
-                                        },
-                                      ),
-                                    )
-                                  ],
-                                )
-                            ),
-                          ),
+
                         ],
                       )
                   ),
@@ -686,55 +737,111 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
             ),
             PaneItem(
                 icon: const Icon(FluentIcons.cloud_upload),
-                body: Row(
-                  children: [
-                    Expanded(
-                        child: Container(
-                          padding: EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 30),
-                          child: Column(
-                            children: [
-                              syncListTemplate(context: context, syncType: SyncType.newFolder),
-                              syncListTemplate(context: context, syncType: SyncType.newFile),
-                            ],
-                          ),
-                        )
-                    ),
-                    Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 30),
-                          child: Column(
-                            children: [
-                              syncListTemplate(context: context, syncType: SyncType.modifiedFolder),
-                              syncListTemplate(context: context, syncType: SyncType.modifiedFile),
-                            ],
-                          ),
-                        )
-                    ),
-                  ],
+                body: Container(
+                  color: Colors.white,
+                  child: Row(
+                    children: [
+                      Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.only(left: 20, right: 10, top: 20, bottom: 30),
+                            child: Column(
+                              children: [
+                                syncListTemplate(context: context, syncType: SyncType.newFolder),
+                                syncListTemplate(context: context, syncType: SyncType.newFile),
+                              ],
+                            ),
+                          )
+                      ),
+                      Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.only(left: 10, right: 20, top: 20, bottom: 30),
+                            child: Column(
+                              children: [
+                                syncListTemplate(context: context, syncType: SyncType.modifiedFolder),
+                                syncListTemplate(context: context, syncType: SyncType.modifiedFile),
+                              ],
+                            ),
+                          )
+                      ),
+                    ],
+                  ),
                 )
             ),
             PaneItem(
                 icon: Icon(FluentIcons.cloud_download),
                 body: Container(
+                  color: Colors.white,
+                  padding: EdgeInsets.all(10),
                   child: Row(
                     children: [
-                      Expanded(child: Container(
-                          child: changeListTemplate(context, changeType: FileChangeEnum.files),
-                      ),),
-                      Expanded(child: Container(
-                        child: changeListTemplate(context, changeType: FileChangeEnum.filesDeleted),
-                      ),),
-                      // Expanded(child: Container(
-                      //   child: changeListTemplate(context, changeType: FileChangeEnum.shareFiles),
-                      // ),)
+                      Expanded(
+                        child: Container(
+                          padding: EdgeInsets.all(8),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(FluentIcons.cloud, size: 20, color: Colors.blue), // Cloud Icon
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "Cloud Files",
+                                    style: FluentTheme.of(context).typography.caption?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 8),
+                              Expanded(child: changeListTemplate(context, changeType: FileChangeEnum.files))
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 10), // Add space between columns
+                      // Expanded(
+                      //   child: Container(
+                      //     padding: EdgeInsets.all(8),
+                      //     child: Column(
+                      //       children: [
+                      //         Row(
+                      //           children: [
+                      //             Icon(FluentIcons.delete, size: 20, color: Colors.red), // Cloud Icon
+                      //             SizedBox(width: 8),
+                      //             Text(
+                      //               "Deleted Files",
+                      //               style: FluentTheme.of(context).typography.caption?.copyWith(fontWeight: FontWeight.bold),
+                      //             ),
+                      //           ],
+                      //         ),
+                      //         SizedBox(height: 8),
+                      //         Expanded(child: changeListTemplate(context, changeType: FileChangeEnum.filesDeleted))
+                      //       ],
+                      //     ),
+                      //   ),
+                      // ),
+                      // Uncomment for the third column
+                      // SizedBox(width: 10),
+                      // Expanded(
+                      //   child: Container(
+                      //     padding: EdgeInsets.all(8),
+                      //     decoration: BoxDecoration(
+                      //       color: Colors.green[50],
+                      //       borderRadius: BorderRadius.circular(10),
+                      //     ),
+                      //     child: changeListTemplate(context, changeType: FileChangeEnum.shareFiles),
+                      //   ),
+                      // ),
                     ],
-                  )
+                  ),
                 )
+
             ),
             PaneItem(
             icon: Icon(FluentIcons.view_dashboard),
             title: const Text('Dashboard'),
             body: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(10))
+              ),
               padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -745,219 +852,166 @@ class _MyHomePageState extends State<MyHomePage> with TrayListener{
                     children: [
                       Expanded(
                         flex: 1,
-                        child: InfoBar(
-                          title: Container(
-                            height: 185,
-                            width: MediaQuery.of(context).size.width,
-                            child: Column(
+                        child:  Container(
+                          child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                              CircleAvatar(
-                                radius: 50,
-                                backgroundImage: NetworkImage(Provider.of<UserProvider>(context, listen: false).user!.userPicture),
-                              ),
-                              SizedBox(height: 10),
-                              Text(
-                                Provider.of<UserProvider>(context, listen: false).user!.userName,
-                                style: TextStyle(
+                                CircleAvatar(
+                                  radius: 30,
+                                  backgroundImage: NetworkImage(Provider.of<UserProvider>(context, listen: false).user!.userPicture),
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  Provider.of<UserProvider>(context, listen: false).user!.userName,
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                              SizedBox(height: 10),
-                              Text(
-                                Provider.of<UserProvider>(context, listen: false).user!.userEmail,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w400,
+                                SizedBox(height: 10),
+                                Text(
+                                  Provider.of<UserProvider>(context, listen: false).user!.userEmail,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
 
                               ]
-                            ),
                           ),
-                          isIconVisible: false,
                         ),
                       ),
                       SizedBox(width: 10,),
                       Expanded(
-                        flex: 2,
-                        child: InfoBar(
-                          title: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Button(
-                                    style: ButtonStyle(
-                                      backgroundColor: ButtonState.all(Provider.of<SyncProvider>(context).isOffline ? Colors.orange : Colors.green),
-                                    ),
-                                    onPressed: (){},
-                                    child: Row(
-                                      children: [Text(Provider.of<SyncProvider>(context).isOffline ? 'Offline' : 'Online', style: TextStyle(color: Colors.white, fontSize: 10),)
-                                      ],
-                                    ),
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Button(
+                                  style: ButtonStyle(
+                                    backgroundColor: ButtonState.all(Provider.of<SyncProvider>(context).isOffline ? Colors.orange : Colors.green),
                                   ),
-                                  if(Provider.of<SyncProvider>(context).isSyncingUp)
-                                    SpinningIcon(icon: FontAwesomeIcons.arrowsRotate, color: Colors.blue),
-                                ],
-                              ),
-                              Container(
-                                padding: EdgeInsets.all(20),
-                                height: 160,
-                                child: ListView.builder(
-                                    itemCount: 3,
-                                    itemBuilder: (context, index) {
-
-                                      Usage? usage = Provider.of<SyncProvider>(context, listen: true).usage;
-
-                                      List<dynamic> data = [
-                                        {
-                                          'icon': FluentIcons.info,
-                                          'title' : 'Folder ID',
-                                          'value': usage == null ? '-' : usage.rootParentId.toString()
-                                        },
-                                        {
-                                          'icon': FluentIcons.folder_fill,
-                                          'title' : 'Folder Path',
-                                          'value': watchedDirectory
-                                        },
-                                        {
-                                          'icon': FluentIcons.globe,
-                                          'title' : 'Usage',
-                                          'value':  usage == null ? '-' : '${usage.usage.getSize()} / ${usage.quota} GB'
-                                        }
-                                      ];
-
-                                      return Container(
-                                        color: Provider.of<SyncProvider>(context).isSyncPaused ? Colors.transparent : index%2 == 0 ? Colors.grey[30] : Colors.grey[20] ,
-                                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.start,
-                                              children: [
-                                                Icon(data[index]['icon']),
-                                                SizedBox(width: 10,),
-                                                Text(data[index]['title'], style: FluentTheme.of(context).typography.caption,),
-                                              ],
-                                            ),
-                                            Text(data[index]['value'], style: FluentTheme.of(context).typography.caption,),
-                                          ],
-                                        ),
-                                      );
-                                    }
+                                  onPressed: (){},
+                                  child: Row(
+                                    children: [Text(Provider.of<SyncProvider>(context).isOffline ? 'Offline' : 'Online', style: TextStyle(color: Colors.white, fontSize: 10),)
+                                    ],
+                                  ),
                                 ),
+                                if(Provider.of<SyncProvider>(context).isSyncingUp)
+                                  SpinningIcon(icon: FontAwesomeIcons.arrowsRotate, color: Colors.blue),
+                              ],
+                            ),
+                            Container(
+                              padding: EdgeInsets.all(20),
+                              height: 160,
+                              child: ListView.builder(
+                                  itemCount: 3,
+                                  itemBuilder: (context, index) {
+
+                                    Usage? usage = Provider.of<SyncProvider>(context, listen: true).usage;
+
+                                    List<dynamic> data = [
+                                      {
+                                        'icon': FluentIcons.info,
+                                        'title' : 'Folder ID',
+                                        'value': usage == null ? '-' : usage.rootParentId.toString()
+                                      },
+                                      {
+                                        'icon': FluentIcons.folder_fill,
+                                        'title' : 'Folder Path',
+                                        'value': watchedDirectory
+                                      },
+                                      {
+                                        'icon': FluentIcons.globe,
+                                        'title' : 'Usage',
+                                        'value':  usage == null ? '-' : '${usage.usage.getSize()} / ${usage.quota} GB'
+                                      }
+                                    ];
+
+                                    return Container(
+                                      color: Provider.of<SyncProvider>(context).isSyncPaused ? Colors.transparent : index%2 == 0 ? Colors.grey[30] : Colors.grey[20] ,
+                                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.start,
+                                            children: [
+                                              Icon(data[index]['icon']),
+                                              SizedBox(width: 10,),
+                                              Text(data[index]['title'], style: FluentTheme.of(context).typography.caption,),
+                                            ],
+                                          ),
+                                          Text(data[index]['value'], style: FluentTheme.of(context).typography.caption,),
+                                        ],
+                                      ),
+                                    );
+                                  }
                               ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  // actionButton(
-                                  //     icon: FontAwesomeIcons.trash,
-                                  //     label: 'DELETE ALL',
-                                  //     onPressed: () async {
-                                  //       databaseService.deleteAll();
-                                  //       _queryFilesAndFolders();
-                                  //     }
-                                  // ),
-                                  // actionButton(
-                                  //     icon: FontAwesomeIcons.trash,
-                                  //     label: 'RESTART',
-                                  //     onPressed: () async {
-                                  //       RestartFromOS.restartApp(appName: 'build\\windows\\x64\\runner\\Debug\\pdwatcher');
-                                  //     }
-                                  // ),
-                                  // if(Provider.of<SyncProvider>(context).isSyncPaused)
-                                  //   actionButton(
-                                  //       icon: FontAwesomeIcons.play,
-                                  //       label: 'RESUME',
-                                  //       onPressed: (){
-                                  //         Provider.of<SyncProvider>(context, listen: false).setResume();
-                                  //       }
-                                  //   ),
-                                  // if(!Provider.of<SyncProvider>(context).isSyncPaused)
-                                  //   actionButton
-                                  //       icon: FontAwesomeIcons.pause,
-                                  //       label: 'PAUSE',
-                                  //       onPressed: (){
-                                  //         Provider.of<SyncProvider>(context, listen: false).setPause();
-                                  //       }
-                                  //   )
-                                ],
-                              )
-                            ],
-                          ),
-                          isIconVisible: false,
-                          severity: Provider.of<SyncProvider>(context).isSyncPaused ? InfoBarSeverity.warning : InfoBarSeverity.info,
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                // actionButton(
+                                //     icon: FontAwesomeIcons.trash,
+                                //     label: 'DELETE ALL',
+                                //     onPressed: () async {
+                                //       databaseService.deleteAll();
+                                //       _queryFilesAndFolders();
+                                //     }
+                                // ),
+                                // actionButton(
+                                //     icon: FontAwesomeIcons.trash,
+                                //     label: 'RESTART',
+                                //     onPressed: () async {
+                                //       RestartFromOS.restartApp(appName: 'build\\windows\\x64\\runner\\Debug\\pdwatcher');
+                                //     }
+                                // ),
+                                // if(Provider.of<SyncProvider>(context).isSyncPaused)
+                                //   actionButton(
+                                //       icon: FontAwesomeIcons.play,
+                                //       label: 'RESUME',
+                                //       onPressed: (){
+                                //         Provider.of<SyncProvider>(context, listen: false).setResume();
+                                //       }
+                                //   ),
+                                // if(!Provider.of<SyncProvider>(context).isSyncPaused)
+                                //   actionButton
+                                //       icon: FontAwesomeIcons.pause,
+                                //       label: 'PAUSE',
+                                //       onPressed: (){
+                                //         Provider.of<SyncProvider>(context, listen: false).setPause();
+                                //       }
+                                //   )
+                              ],
+                            )
+                          ],
                         ),
                       )
                     ],
                   ),
                   SizedBox(height: 20,),
+                  if(showAllMenu)
                   Container(
                     height: 200,
-                    child: CustomScrollView(
-                      slivers: [
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                              // Get log messages from the Log class
-                              return Padding(
-                                padding: const EdgeInsets.only(left: 8, top: 2),
-                                child: Text(
-                                  Log.logMessages[index], // Display the log message
-                                  style: TextStyle(fontSize: 9, fontFamily: 'Courier'),
-                                ),
-                              );
-                            },
-                            childCount: Log.logMessages.length, // The number of log messages to display
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  // Expanded(
-                  //   child: Container(
-                  //     child: Row(
-                  //       children: [
-                  //         syncListTemplate(context: context, syncType: SyncType.newFolder),
-                  //         syncListTemplate(context: context, syncType: SyncType.newFile),
-                  //         syncListTemplate(context: context, syncType: SyncType.modifiedFolder),
-                  //         syncListTemplate(context: context, syncType: SyncType.modifiedFile),
-                  //       ],
-                  //     ),
-                  //   ),
-                  // )
+                    child: logHistory(context),
+                  ),
+                  if(!showAllMenu)
+                  CurrentTaskWidget()
                 ],
               )
             ),
           ),
+            if(showAllMenu)
             PaneItem(
                 icon: Icon(FluentIcons.list),
-                body: CustomScrollView(
-                  slivers: [
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                            (BuildContext context, int index) {
-                          // Get log messages from the Log class
-                          return Padding(
-                            padding: const EdgeInsets.only(left: 8, top: 2),
-                            child: Text(
-                              Log.logMessages[index], // Display the log message
-                              style: TextStyle(fontSize: 10, fontFamily: 'Courier'),
-                            ),
-                          );
-                        },
-                        childCount: Log.logMessages.length, // The number of log messages to display
-                      ),
-                    ),
-                  ],
-                )
+                body: logHistory(context)
             ),
           ],
         ),

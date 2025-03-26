@@ -11,23 +11,23 @@ class Log {
 
   static void info(String message) {
     final DateTime now = DateTime.now();
-    print('\x1B[32m${now.toLocal().toString().substring(0,19)} INFO: $message\x1B[0m'.toLowerCase());
-    _writeToLog('${now.toLocal().toString().substring(0,19)} INFO: $message');
+    print('\x1B[32m${now.toLocal().toString().substring(0,19)} INF0: <barrier> $message\x1B[0m'.toLowerCase());
+    _writeToLog('${now.toLocal().toString().substring(0,19)} INFO: <barrier> $message');
   }
   static void warning(String message) {
     final DateTime now = DateTime.now();
-    print('\x1B[33m${now.toLocal().toString().substring(0,19)} WARNING: $message\x1B[0m'.toLowerCase());
-    _writeToLog('${now.toLocal().toString().substring(0,19)} WARNING: $message');
+    print('\x1B[33m${now.toLocal().toString().substring(0,19)} WARNING: <barrier> $message\x1B[0m'.toLowerCase());
+    _writeToLog('${now.toLocal().toString().substring(0,19)} WARNING: <barrier> $message');
   }
   static void error(String message) {
     final DateTime now = DateTime.now();
-    print('\x1B[31m${now.toLocal().toString().substring(0,19)} ERROR: $message\x1B[0m'.toLowerCase());
-    _writeToLog('${now.toLocal().toString().substring(0,19)} ERROR: $message');
+    print('\x1B[31m${now.toLocal().toString().substring(0,19)} ERROR: <barrier> $message\x1B[0m'.toLowerCase());
+    _writeToLog('${now.toLocal().toString().substring(0,19)} ERROR: <barrier> $message');
   }
   static void verbose(String message) {
     final DateTime now = DateTime.now();
-    print('\x1B[34m${now.toLocal().toString().substring(0,19)} VERBOSE: $message\x1B[0m'.toLowerCase());
-    _writeToLog('${now.toLocal().toString().substring(0,19)} VERBOSE: $message');
+    print('\x1B[34m${now.toLocal().toString().substring(0,19)} VERBOSE: <barrier> $message\x1B[0m'.toLowerCase());
+    _writeToLog('${now.toLocal().toString().substring(0,19)} VERBOSE: <barrier> $message');
   }
 
   static void _writeToLog(String message) {
@@ -38,7 +38,8 @@ class Log {
       _logMessages.removeRange(0, _logMessages.length - 1000);
     }
 
-    return;
+    //return;
+
     final DateTime now = DateTime.now();
     final String fileName = '${logDir}log_${now.toIso8601String().split('T')[0]}.txt';
     final file = File(fileName);

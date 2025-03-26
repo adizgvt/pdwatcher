@@ -14,7 +14,7 @@ void showUnsupportedPlatformWarningDialog() {
               FilledButton(
                 child: const Text('EXIT'),
                 onPressed: () {
-                  exit(0);
+                  //exit(0);
                 },
               ),
             ],

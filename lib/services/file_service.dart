@@ -5,74 +5,76 @@ import 'package:background_downloader/background_downloader.dart';
 import 'package:chunked_uploader/chunked_uploader.dart';
 import 'package:custom_platform_device_id/platform_device_id.dart';
 import 'package:dio/dio.dart';
+import 'package:fluent_ui/fluent_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/api_response.dart';
+import '../models/current_task.dart';
+import '../providers/task_provider.dart';
 import '../utils/consts.dart';
 import 'local_storage_service.dart';
 import 'log_service.dart';
 
 class FileService {
 
-  static Future<bool?> download({required fileId , required tempName}) async {
-
-    String domain   = await LocalStorage.getServerUrl() ?? '';
-    String token    = await LocalStorage.getToken() ?? '';
-
-    // ApiResponse apiResponse = await apiService(
-    //     serviceMethod: ServiceMethod.download,
-    //     path: '/api/download',
-    //     tempName: tempName,
-    //     data: {
-    //       'file_id': fileId.toString(),
-    //     }
-    // );
-    //
-    // if(apiResponse.statusCode != 200){
-    //   return true;
-    // }
-    //
-    // return null;
+  static Future<bool?> download({
+    required int fileId,
+    required String tempName,
+    required String cloudPath,
+    required BuildContext context,
+  }) async {
+    String domain = await LocalStorage.getServerUrl() ?? '';
+    String token = await LocalStorage.getToken() ?? '';
 
     final task = DownloadTask(
-        url         : Uri.encodeFull('$domain/api/download?file_id=$fileId'),
-        headers     : {
-          'Authorization' : 'Bearer $token',
-          'Content'       : 'application/json',
-          'Accept'        : 'application/octet-stream',
-        },
-        post: {
-          'file_id'   : fileId.toString(),
-          'hostname'  : await LocalStorage.getLocalHostname(),
-          'uuid'      : await LocalStorage.getDeviceId(),
-        },
-        filename    : tempName,
-        directory   : tempDir,
-        updates     : Updates.statusAndProgress, // request status and progress updates
-        requiresWiFi: true,
-        retries     : 1,
-        metaData    : 'data for me'
+      url: Uri.encodeFull('$domain/api/download?file_id=$fileId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content': 'application/json',
+        'Accept': 'application/octet-stream',
+      },
+      post: {
+        'file_id': fileId.toString(),
+        'hostname': await LocalStorage.getLocalHostname(),
+        'uuid': await LocalStorage.getDeviceId(),
+      },
+      filename: tempName,
+      directory: tempDir,
+      updates: Updates.statusAndProgress,
+      requiresWiFi: true,
+      retries: 1,
+      metaData: 'data for me',
     );
 
-    // Start download, and wait for result. Show progress and status changes
-    // while downloadingf
+    Provider.of<TaskProvider>(context, listen: false).updateAction(TaskAction.download);
+    Provider.of<TaskProvider>(context, listen: false).updateFilename(cloudPath);
 
-    final result = await FileDownloader().download(task,
-        onProgress          : (progress) {
-          Log.verbose('Progress: ${progress * 100}%');
-        },
-        onStatus            : (status) => Log.verbose('Status: $status'),
-        elapsedTimeInterval : const Duration(seconds: 10),
-        onElapsedTime       : (Duration duration) async {
-          Log.verbose(duration.toString());
+    final result = await FileDownloader().download(
+      task,
+      onProgress: (progress) {
+        Log.verbose('Progress: ${progress * 100}%');
+        double percentageProgress = progress * 100;
+        Provider.of<TaskProvider>(context, listen: false).updateProgress(percentageProgress);
+      },
+      onStatus: (status) {
+        Log.verbose('Status: $status');
+        if (status == TaskStatus.canceled || status == TaskStatus.paused) {
+          Provider.of<TaskProvider>(context, listen: false).updateProgress(0);
         }
+      },
+      elapsedTimeInterval: const Duration(seconds: 10),
+      onElapsedTime: (Duration duration) async {
+        Log.verbose(duration.toString());
+      },
     );
 
     Log.verbose(const JsonEncoder.withIndent('  ').convert(task.toJson()));
     Log.verbose(const JsonEncoder.withIndent('  ').convert(result.toJson()));
 
     ApiResponse apiResponse = ApiResponse();
+
     // Act on the result
     switch (result.status) {
       case TaskStatus.complete:
@@ -82,31 +84,41 @@ class FileService {
         print('---------');
         apiResponse.message = 'File successfully downloaded';
 
+        break;
+
       case TaskStatus.canceled:
         apiResponse.message = 'Download canceled';
+        break;
 
       case TaskStatus.paused:
         print('Download was paused');
+        apiResponse.message = 'Download paused';
+        break;
 
       default:
         apiResponse.message = 'Download not successful';
+        break;
     }
+
+    Provider.of<TaskProvider>(context, listen: false).updateProgress(0);
 
     Log.verbose(apiResponse.message.toString());
 
-    if(result.status == TaskStatus.complete) {
+    if (result.status == TaskStatus.complete) {
       return true;
     }
+
     return null;
   }
 
   static Future<Map<String, dynamic>?> upload({
     required String filePath,
     required int parentId,
+    required context
   }) async {
 
     //return uploadSingleFile(filePath: filePath, parentId: parentId);
-    return uploadChunk(filePath: filePath, parentId: parentId);
+    return uploadChunk(filePath: filePath, parentId: parentId, context: context);
   }
 
   static Future<Map<String, dynamic>?> uploadSingleFile({
@@ -173,6 +185,7 @@ class FileService {
   static Future<Map<String, dynamic>?> uploadChunk({
     required String filePath,
     required int parentId,
+    required BuildContext context,  // Pass the context to access the TaskProvider
   }) async {
 
     final domain    = await LocalStorage.getServerUrl() ?? '';
@@ -188,6 +201,9 @@ class FileService {
 
     Map<String, dynamic>? lastResponse;
 
+    Provider.of<TaskProvider>(context, listen: false).updateAction(TaskAction.upload);
+    Provider.of<TaskProvider>(context, listen: false).updateFilename(filePath);
+
     for (int i = 0; i < totalChunks; i++) {
       final int start = i * chunkSize;
       final int end = (start + chunkSize < fileLength) ? start + chunkSize : fileLength;
@@ -196,20 +212,18 @@ class FileService {
       final request = http.MultipartRequest('POST', Uri.parse('$domain/api/upload'))
         ..headers['Authorization']      = 'Bearer $token'
         ..headers['Accept']             = 'application/json'
-
         ..fields['hostname']            = await LocalStorage.getLocalHostname() ?? ''
         ..fields['uuid']                = await LocalStorage.getDeviceId() ?? ''
         ..fields['dzuuid']              = uuid
         ..fields['dzchunkindex']        = i.toString()
         ..fields['dztotalchunkcount']   = totalChunks.toString()
         ..fields['parent_id']           = parentId.toString()
-
         ..files.add(http.MultipartFile.fromBytes('file', chunkData, filename: fileName));
 
       final response      = await request.send();
       final responseBody  = await http.Response.fromStream(response);
 
-      Log.verbose('Uploading chunk ${i+1}/$totalChunks');
+      Log.verbose('Uploading chunk ${i + 1}/$totalChunks');
       print('Response Status Code : ${responseBody.statusCode}');
       print('Response Body        : ${responseBody.body}');
 
@@ -218,20 +232,25 @@ class FileService {
         return null;
       }
 
+      // Update progress in the provider after each chunk upload
+      double progress = ((i + 1) / totalChunks) * 100; // Calculate progress in percentage
+      Provider.of<TaskProvider>(context, listen: false).updateProgress(progress);
+
       if (i == totalChunks - 1) {
         try {
           final uploadResponse = jsonDecode(responseBody.body) as Map<String, dynamic>;
-
-          //print(uploadResponse);
 
           lastResponse = {
             'id'        : uploadResponse['fileid'],
             'timestamp' : uploadResponse['mtime'],
             'mimetype'  : uploadResponse['mimetype'],
           };
-        } catch (e,s) {
+        } catch (e, s) {
           print('Failed to decode response: $e ${s}');
           return null;
+        }
+        finally {
+          Provider.of<TaskProvider>(context, listen: false).updateProgress(0);
         }
       } else {
         lastResponse = null;
@@ -241,7 +260,8 @@ class FileService {
     return lastResponse; // Return the response of the last chunk
   }
 
-  static void moveFile(String sourcePath, String destinationPath) {
+
+static void moveFile(String sourcePath, String destinationPath) {
 
     try {
       File sourceFile = File(sourcePath);

@@ -59,6 +59,7 @@ dependencies:
   restartfromos: ^0.0.3
   tray_manager: ^0.3.2
   flutter_single_instance: ^1.1.2
+  google_fonts: ^6.2.1
   desktop_updater: ^1.0.2
 
 dev_dependencies:

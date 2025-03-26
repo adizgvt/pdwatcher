@@ -240,7 +240,12 @@ abstract class SyncService {
             Provider.of<SyncProvider>(context, listen: false).updateUI();
 
             //Download to temp
-            bool? result = await FileService.download(fileId: file.remotefileId, tempName: tempName);
+            bool? result = await FileService.download(
+                fileId        : file.remotefileId,
+                cloudPath     : file.path,
+                tempName      : tempName,
+                context       : context,
+            );
 
             if(result == null){
               throw 'download failed';
@@ -318,7 +323,12 @@ abstract class SyncService {
               continue;
             }
             //download to temp
-            bool? result = await FileService.download(fileId: file.remotefileId, tempName: tempName);
+            bool? result = await FileService.download(
+                fileId    : file.remotefileId,
+                cloudPath : file.path,
+                tempName  : tempName,
+                context   : context
+            );
 
             if(result == null){
               throw 'download failed';
@@ -361,7 +371,7 @@ abstract class SyncService {
         }
 
         Provider.of<SyncProvider>(context, listen: false).change!.files[index].syncStatus   = SyncStatus.success;
-        Provider.of<SyncProvider>(context, listen: false).change!.files[index].errorMessage = '';
+        Provider.of<SyncProvider>(context, listen: false).change!.files[index].errorMessage = null;
         Provider.of<SyncProvider>(context, listen: false).updateUI();
 
       }catch(e){
@@ -916,6 +926,7 @@ abstract class SyncService {
         Map<String, dynamic>? result = await FileService.upload(
             filePath    : file.localPath,
             parentId    : remoteFileInfo.parent,
+            context     : context
         );
 
         if(result == null){
@@ -1139,7 +1150,8 @@ abstract class SyncService {
 
         Map<String, dynamic>? result = await FileService.upload(
             filePath: file.localPath,
-            parentId: parentId
+            parentId: parentId,
+            context : context
         );
 
         print('result $result');

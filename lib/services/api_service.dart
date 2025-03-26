@@ -97,7 +97,7 @@ Future<ApiResponse> apiService({
         response = await dio.get(path, queryParameters: data);
     }
     //PRINT LOGS
-    if(kDebugMode/* && path != '/api/getChanges'*/) {
+    if(kDebugMode && path != '/api/getChanges') {
 
       print(serverUrl + path);
       print('------------------------REQUEST DATA--------------------------------');
